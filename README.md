@@ -60,13 +60,6 @@ Vortx is a cutting-edge Earth Memory System designed for AGI and advanced geospa
 
 ## Quick Start
 
-```bash
-# Install Vortx
-pip install vortx
-
-# Install with AGI and synthetic data capabilities
-pip install "vortx[agi,synthetic]"
-```
 
 Basic AGI memory usage:
 ```python
