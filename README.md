@@ -2,7 +2,7 @@
 
 Advanced Earth Memory System for AGI and Geospatial Intelligence
 
-<img src="docs/vortxgola.jpeg" alt="Vortx Logo" width="200"/>
+<img src="vortxgola.jpg" alt="Vortx Logo" width="200"/>
 
 [![PyPI version](https://badge.fury.io/py/vortx.svg)](https://badge.fury.io/py/vortx)
 [![Documentation](https://img.shields.io/badge/docs-vortx.ai-green.svg)](https://vortx.ai/docs)
