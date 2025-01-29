@@ -14,5 +14,4 @@ device: "cpu"  # or "cuda" if GPU available
 
 # Output Settings
 output_format: "png"
-output_quality: 95
 max_resolution: 2048
