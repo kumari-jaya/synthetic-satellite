@@ -1,0 +1,312 @@
+openapi: 3.0.0
+info:
+  title: Secure Synthetic Data Generator API
+  version: 1.0.0
+  description: |
+    API for generating and serving synthetic data with geo-privacy protection.
+    
+    Features:
+    - Synthetic image generation from input images
+    - XYZ tile serving with encryption
+    - Geo-privacy protection for location data
+    - Access control and API key management
+    
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    AccessTokenAuth:
+      type: apiKey
+      in: header
+      name: X-Access-Token
+      
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          
+    GenerateResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        output_path:
+          type: string
+          description: Path to the generated file
+        metadata:
+          type: object
+          description: Secure metadata for decoding
+          
+    Capabilities:
+      type: object
+      properties:
+        version:
+          type: string
+        supported_formats:
+          type: array
+          items:
+            type: string
+        max_image_size:
+          type: integer
+        tile_size:
+          type: integer
+        models:
+          type: object
+          properties:
+            stable_diffusion:
+              type: string
+            controlnet:
+              type: string
+            segmentation:
+              type: string
+        endpoints:
+          type: object
+          properties:
+            generate:
+              type: string
+            tiles:
+              type: string
+            map:
+              type: string
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Check if the service is running
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                    
+  /api/v1/generate:
+    post:
+      summary: Generate synthetic image
+      description: |
+        Generate a synthetic image from an input image with geo-privacy protection.
+        The generated image will be encrypted and require an access token to decode.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Input image file
+                prompt:
+                  type: string
+                  description: Text prompt for generation
+                negative_prompt:
+                  type: string
+                  description: Negative prompt for generation
+                protection_level:
+                  type: string
+                  enum: [low, medium, high]
+                  default: high
+                layout_type:
+                  type: string
+                  enum: [grid, spiral, cluster, box, bbox]
+                  default: grid
+                fractal_type:
+                  type: string
+                  enum: [hilbert, spiral, koch, sierpinski, julia]
+              required:
+                - image
+      responses:
+        '200':
+          description: Successfully generated image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  /api/v1/tiles/{z}/{x}/{y}.png:
+    get:
+      summary: Get map tile
+      description: |
+        Get an encrypted XYZ tile with geo-privacy protection.
+        Requires both API key and access token.
+      security:
+        - ApiKeyAuth: []
+        - AccessTokenAuth: []
+      parameters:
+        - name: z
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 22
+        - name: x
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - name: y
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - name: image_url
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: prompt
+          in: query
+          schema:
+            type: string
+        - name: negative_prompt
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PNG tile image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  /api/v1/map:
+    get:
+      summary: Get map viewer
+      description: HTML page for viewing the map with synthetic layers
+      responses:
+        '200':
+          description: HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+                
+  /api/v1/capabilities:
+    get:
+      summary: Get server capabilities
+      description: Get information about supported features and configuration
+      responses:
+        '200':
+          description: Server capabilities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capabilities'
+                
+  /api/v1/download/{filename}:
+    get:
+      summary: Download generated result
+      description: |
+        Download an encrypted generated result.
+        Requires both API key and access token.
+      security:
+        - ApiKeyAuth: []
+        - AccessTokenAuth: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Secure metadata for decoding
+      responses:
+        '200':
+          description: PNG image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

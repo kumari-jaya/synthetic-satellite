@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'vortx'
+    static_configs:
+      - targets: ['api:8000']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  - job_name: 'vortx-redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  - job_name: 'vortx-prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  - job_name: 'vortx-node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - 'rules/*.yml' 

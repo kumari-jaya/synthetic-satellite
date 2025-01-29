@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    image: vortx/vortx-api:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - data:/app/data
+    environment:
+      - VORTX_ENV=development
+      - VORTX_DEBUG=1
+      - VORTX_LOG_LEVEL=DEBUG
+      - VORTX_REDIS_URL=redis://redis:6379/0
+      - VORTX_ML_SERVICE_URL=http://ml:8001
+    depends_on:
+      - redis
+      - ml
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ml:
+    build:
+      context: .
+      dockerfile: docker/ml/Dockerfile
+    image: vortx/vortx-ml:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+      - models:/app/models
+    environment:
+      - VORTX_ENV=development
+      - VORTX_DEBUG=1
+      - VORTX_LOG_LEVEL=DEBUG
+      - VORTX_REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    image: vortx/vortx-worker:latest
+    volumes:
+      - .:/app
+      - data:/app/data
+    environment:
+      - VORTX_ENV=development
+      - VORTX_DEBUG=1
+      - VORTX_LOG_LEVEL=DEBUG
+      - VORTX_REDIS_URL=redis://redis:6379/0
+      - VORTX_ML_SERVICE_URL=http://ml:8001
+    depends_on:
+      - redis
+      - ml
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=vortx
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+
+  minio:
+    image: minio/minio:RELEASE.2023-07-21T21-12-44Z
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=vortx
+      - MINIO_ROOT_PASSWORD=vortx123
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  docs:
+    build:
+      context: .
+      dockerfile: docs/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      - VORTX_DOCS_ENV=development
+    command: mkdocs serve -a 0.0.0.0:8080
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  minio_data:
+  data:
+  models: 
