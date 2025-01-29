@@ -33,7 +33,20 @@ from google.cloud import storage
 import torch
 
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator
-from geo.helper import generate_tile, tile_coords_to_bbox
+
+# Add the project root to Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(project_root)
+sys.path.append(os.path.join(project_root, 'src'))
+
+try:
+    from src.geo.helper import generate_tile, tile_coords_to_bbox
+except ImportError:
+    try:
+        from geo.helper import generate_tile, tile_coords_to_bbox
+    except ImportError:
+        print("Error: Could not import geo.helper. Current sys.path:", sys.path)
+        raise
 
 # Load environment variables
 load_dotenv()
