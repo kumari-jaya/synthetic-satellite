@@ -109,14 +109,14 @@ insights = vx.analyze_with_deepseek(
 
 ## Documentation
 
-Comprehensive documentation is available at [https://vortx.ai/docs](https://vortx.ai/docs)
+Comprehensive documentation is available in the docs directory:
 
-- [AGI Integration Guide](https://vortx.ai/docs/agi)
-- [Memory System Documentation](https://vortx.ai/docs/memory)
-- [Synthetic Data Generation](https://vortx.ai/docs/synthetic)
-- [DeepSeek Model Guide](https://vortx.ai/docs/deepseek)
-- [API Reference](https://vortx.ai/docs/api)
-- [Examples](https://vortx.ai/docs/examples)
+- [AGI Integration Guide](docs/agi/integration.md)
+- [Memory System Documentation](docs/memory/index.md)
+- [Synthetic Data Generation](docs/synthetic/index.md)
+- [DeepSeek Model Guide](docs/models/deepseek.md)
+- [API Reference](docs/api/reference.md)
+- [Code Examples](docs/examples/code-samples.md)
 
 ## Use Cases
 
