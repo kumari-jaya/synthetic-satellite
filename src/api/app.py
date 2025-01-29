@@ -33,7 +33,7 @@ from google.cloud import storage
 import torch
 
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator
-from geo.helper import generate_tile
+from geo.helper import generate_tile, tile_coords_to_bbox
 
 # Load environment variables
 load_dotenv()
