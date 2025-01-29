@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Advanced Topics - Vortx.ai</title>
+  <link rel="stylesheet" href="/css/docs.css">
+</head>
+<body>
+  <div class="docs-container">
+    <h1>Advanced Topics</h1>
+    
+    <section>
+      <h2>Custom Configurations</h2>
+      <p>Configure Vortx.ai for enterprise usage with our advanced settings (Updated for 2025):</p>
+      <pre><code>
+const config = {
+  enterprise: {
+    maxConcurrency: 100,
+    timeout: '30s',
+    retryStrategy: 'exponential',
+    caching: {
+      type: 'redis',
+      ttl: '24h'
+    }
+  },
+  security: {
+    encryption: 'AES-256-GCM',
+    apiKeyRotation: true
+  }
+}</code></pre>
+    </section>
+    
+    <section>
+      <h2>API Integration</h2>
+      <p>Our 2025 API supports both REST and GraphQL. See our <a href="../api/reference.md">complete API documentation</a>.</p>
+      <pre><code>
+// GraphQL Example
+const query = `
+  query AnalyzeData($input: JSON!) {
+    analyze(input: $input) {
+      predictions
+      confidence
+      metadata
+    }
+  }
+`;
+
+// REST Example
+await fetch('https://api.vortx.ai/v2025/analyze', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ input: data })
+});</code></pre>
+    </section>
+    
+    <section>
+      <h2>Related Documentation</h2>
+      <ul>
+        <li><a href="../security/encryption.md">Security & Encryption</a></li>
+        <li><a href="../performance/optimization.md">Performance Tuning</a></li>
+        <li><a href="../enterprise/deployment.md">Enterprise Deployment</a></li>
+        <li><a href="../agi/integration.md">AGI Integration Guide</a></li>
+      </ul>
+    </section>
+    
+    <section>
+      <h2>Performance Optimization</h2>
+      <!-- Add performance tips -->
+    </section>
+  </div>
+</body>
+</html> 

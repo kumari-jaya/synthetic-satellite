@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Code Samples - Vortx.ai</title>
+  <link rel="stylesheet" href="/css/docs.css">
+</head>
+<body>
+  <div class="docs-container">
+    <h1>Code Samples</h1>
+    
+    <section>
+      <h2>Basic Usage</h2>
+      <pre><code>
+import { VortxAI } from '@vortx/ai-core';
+
+const vortx = new VortxAI({
+  apiKey: process.env.VORTX_API_KEY,
+  version: '2025.1',
+  region: 'auto'
+});
+
+// Modern async/await usage
+async function analyzeData() {
+  const result = await vortx.analyze({
+    input: data,
+    model: 'vortx-gpt-4',
+    temperature: 0.7
+  });
+  
+  console.log(result.predictions);
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>Advanced Features</h2>
+      <pre><code>
+// Stream responses
+const stream = await vortx.streamAnalysis({
+  input: largeDataset,
+  chunkSize: '1MB'
+});
+
+for await (const chunk of stream) {
+  console.log(chunk);
+}
+
+// Use WebAssembly acceleration
+await vortx.enableWasm();
+const fastResult = await vortx.analyze({
+  input: data,
+  accelerator: 'wasm'
+});</code></pre>
+    </section>
+
+    <section>
+      <h2>Additional Resources</h2>
+      <ul>
+        <li><a href="../api/reference.md">Full API Reference</a></li>
+        <li><a href="../examples/notebooks/">Jupyter Notebooks</a></li>
+        <li><a href="../tutorials/index.md">Step-by-Step Tutorials</a></li>
+        <li><a href="../examples/">More Code Examples</a></li>
+      </ul>
+    </section>
+
+    <!-- Add more code samples -->
+  </div>
+</body>
+</html> 

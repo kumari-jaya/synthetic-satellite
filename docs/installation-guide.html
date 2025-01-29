@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Installation Guide - Vortx.ai</title>
+  <link rel="stylesheet" href="/css/docs.css">
+</head>
+<body>
+  <div class="docs-container">
+    <h1>Installation Guide</h1>
+    
+    <section>
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>Node.js v18 or higher</li>
+        <li>npm v9+ or yarn v4+</li>
+        <li>Minimum 4GB RAM</li>
+        <li>Compatible with Windows, macOS, and Linux</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Basic Installation</h2>
+      <pre><code>
+# Using npm
+npm install @vortx/ai-core @vortx/ai-plugins
+
+# Using yarn
+yarn add @vortx/ai-core @vortx/ai-plugins
+
+# Using pnpm
+pnpm add @vortx/ai-core @vortx/ai-plugins</code></pre>
+    </section>
+
+    <section>
+      <h2>Quick Start</h2>
+      <pre><code>
+import { VortxAI } from '@vortx/ai-core';
+import { ImageAnalysis } from '@vortx/ai-plugins';
+
+const vortx = new VortxAI({
+  apiKey: process.env.VORTX_API_KEY,
+  version: '2025.1',
+  plugins: [ImageAnalysis]
+});</code></pre>
+    </section>
+
+    <section>
+      <h2>Configuration</h2>
+      <!-- Add configuration details -->
+    </section>
+
+    <section>
+      <h2>Related Resources</h2>
+      <ul>
+        <li><a href="../examples/code-samples.md">View Code Samples</a></li>
+        <li><a href="../api/reference.md">API Documentation</a></li>
+        <li><a href="../advanced/topics.md">Advanced Configuration</a></li>
+        <li><a href="../CONTRIBUTING.md">Contributing Guide</a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Support</h2>
+      <p>Need help? Check out our:</p>
+      <ul>
+        <li><a href="../faq.md">FAQ</a></li>
+        <li><a href="../community/support.md">Community Support</a></li>
+        <li><a href="../troubleshooting.md">Troubleshooting Guide</a></li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html> 
