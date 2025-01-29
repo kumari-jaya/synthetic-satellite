@@ -33,6 +33,7 @@ from google.cloud import storage
 import torch
 
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator
+from geo.helper import generate_tile
 
 # Load environment variables
 load_dotenv()
@@ -604,6 +605,45 @@ def plant_flow():
     except Exception as e:
         logger.error(f"Error processing /plant/flow: {e}")
         return jsonify({"status": 500, "message": "Internal Server Error"}), 500
+
+@app.route("/tileformer", methods=['POST'])
+def tileformer():
+    try:
+        # Parse JSON payload
+        data = request.get_json()
+        if not data:
+            return {"error": "Request payload must be in JSON format"}, 400
+
+        # Validate URLs
+        b04_url = data.get("image_url_b04")
+        b08_url = data.get("image_url_b08")
+        if not b04_url or not b08_url:
+            return {"error": "Both 'image_url_b04' and 'image_url_b08' parameters are required"}, 400
+
+        # Parse and validate bounding box parameters
+        try:
+            minx = float(data.get("minx", -180))
+            miny = float(data.get("miny", -90))
+            maxx = float(data.get("maxx", 180))
+            maxy = float(data.get("maxy", 90))
+        except ValueError:
+            return {"error": "Bounding box parameters must be numeric"}, 400
+
+        tile_size = int(data.get('tile_size', 256))
+        algorithm = data.get('algorithm', 'transformer')
+
+        bbox = [minx, miny, maxx, maxy]
+
+        # Generate and serve the tile
+        img_byte_arr = generate_tile(b04_url, b08_url, bbox, tile_size, algorithm)
+        
+        if img_byte_arr:
+            return send_file(img_byte_arr, mimetype='image/png')
+        else:
+            return {"error": f"Unsupported algorithm '{algorithm}'"}, 400
+
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 # ====================
 # + Finalizing the App
