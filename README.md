@@ -111,12 +111,12 @@ insights = vx.analyze_with_deepseek(
 
 Comprehensive documentation is available in the docs directory:
 
-- [AGI Integration Guide](docs/agi/integration.md)
-- [Memory System Documentation](docs/memory/index.md)
-- [Synthetic Data Generation](docs/synthetic/index.md)
-- [DeepSeek Model Guide](docs/models/deepseek.md)
-- [API Reference](docs/api/reference.md)
-- [Code Examples](docs/examples/code-samples.md)
+- [AGI Integration Guide](docs/advanced_features.md)
+- [Memory System Documentation](docs/memory_system.md)
+- [Synthetic Data Generation](docs/synthetic_data.md)
+- [DeepSeek Model Guide](docs/model_guide.md)
+- [API Reference](docs/api_reference.md)
+- [Code Examples](docs/examples.md)
 
 ## Use Cases
 
