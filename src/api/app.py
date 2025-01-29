@@ -31,7 +31,8 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from google.cloud import storage
 import torch
-from flask_restx import Api, Resource, Namespace
+from flasgger import Swagger
+from flasgger.utils import swag_from
 
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator
 
@@ -620,62 +621,78 @@ def plant_flow():
         logger.error(f"Error processing /plant/flow: {e}")
         return jsonify({"status": 500, "message": "Internal Server Error"}), 500
 
-# Create or get the tile namespace
-tile_ns = Namespace('tile', description='Tile operations')
+@app.route("/tileformer", methods=['POST'])
+@swag_from({
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'image_url_b04': {'type': 'string', 'description': 'URL for the B04 band image'},
+                    'image_url_b08': {'type': 'string', 'description': 'URL for the B08 band image'},
+                    'minx': {'type': 'number', 'description': 'Minimum X coordinate of bounding box'},
+                    'miny': {'type': 'number', 'description': 'Minimum Y coordinate of bounding box'},
+                    'maxx': {'type': 'number', 'description': 'Maximum X coordinate of bounding box'},
+                    'maxy': {'type': 'number', 'description': 'Maximum Y coordinate of bounding box'},
+                    'tile_size': {'type': 'integer', 'description': 'Size of the output tile', 'default': 256},
+                    'algorithm': {'type': 'string', 'description': 'Processing algorithm', 'default': 'transformer'}
+                },
+                'required': ['image_url_b04', 'image_url_b08']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Generated tile image',
+            'content': {'image/png': {}}
+        },
+        400: {
+            'description': 'Validation Error'
+        },
+        500: {
+            'description': 'Internal Server Error'
+        }
+    }
+})
+def tileformer():
+    try:
+        # Parse JSON payload
+        data = request.get_json()
+        if not data:
+            return {"error": "Request payload must be in JSON format"}, 400
 
-@tile_ns.route("/tileformer")
-class TileFormer(Resource):
-    @tile_ns.doc('generate_tile',
-        params={
-            'image_url_b04': 'URL for the B04 band image',
-            'image_url_b08': 'URL for the B08 band image',
-            'minx': 'Minimum X coordinate of bounding box',
-            'miny': 'Minimum Y coordinate of bounding box',
-            'maxx': 'Maximum X coordinate of bounding box',
-            'maxy': 'Maximum Y coordinate of bounding box',
-            'tile_size': 'Size of the output tile (default: 256)',
-            'algorithm': 'Processing algorithm (default: transformer)'
-        })
-    @tile_ns.response(200, 'Success')
-    @tile_ns.response(400, 'Validation Error')
-    @tile_ns.response(500, 'Internal Server Error')
-    def post(self):
+        # Validate URLs
+        b04_url = data.get("image_url_b04")
+        b08_url = data.get("image_url_b08")
+        if not b04_url or not b08_url:
+            return {"error": "Both 'image_url_b04' and 'image_url_b08' parameters are required"}, 400
+
+        # Parse and validate bounding box parameters
         try:
-            # Parse JSON payload
-            data = request.get_json()
-            if not data:
-                return {"error": "Request payload must be in JSON format"}, 400
+            minx = float(data.get("minx", -180))
+            miny = float(data.get("miny", -90))
+            maxx = float(data.get("maxx", 180))
+            maxy = float(data.get("maxy", 90))
+        except ValueError:
+            return {"error": "Bounding box parameters must be numeric"}, 400
 
-            # Validate URLs
-            b04_url = data.get("image_url_b04")
-            b08_url = data.get("image_url_b08")
-            if not b04_url or not b08_url:
-                return {"error": "Both 'image_url_b04' and 'image_url_b08' parameters are required"}, 400
+        tile_size = int(data.get('tile_size', 256))
+        algorithm = data.get('algorithm', 'transformer')
 
-            # Parse and validate bounding box parameters
-            try:
-                minx = float(data.get("minx", -180))
-                miny = float(data.get("miny", -90))
-                maxx = float(data.get("maxx", 180))
-                maxy = float(data.get("maxy", 90))
-            except ValueError:
-                return {"error": "Bounding box parameters must be numeric"}, 400
+        bbox = [minx, miny, maxx, maxy]
 
-            tile_size = int(data.get('tile_size', 256))
-            algorithm = data.get('algorithm', 'transformer')
+        # Generate and serve the tile
+        img_byte_arr = generate_tile(b04_url, b08_url, bbox, tile_size, algorithm)
+        
+        if img_byte_arr:
+            return send_file(img_byte_arr, mimetype='image/png')
+        else:
+            return {"error": f"Unsupported algorithm '{algorithm}'"}, 400
 
-            bbox = [minx, miny, maxx, maxy]
-
-            # Generate and serve the tile
-            img_byte_arr = generate_tile(b04_url, b08_url, bbox, tile_size, algorithm)
-            
-            if img_byte_arr:
-                return send_file(img_byte_arr, mimetype='image/png')
-            else:
-                return {"error": f"Unsupported algorithm '{algorithm}'"}, 400
-
-        except Exception as e:
-            return {"error": str(e)}, 500
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 # ====================
 # + Finalizing the App
