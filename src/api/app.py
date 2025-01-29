@@ -31,6 +31,7 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from google.cloud import storage
 import torch
+from flask_restx import Api, Resource, Namespace
 
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator
 
@@ -619,44 +620,62 @@ def plant_flow():
         logger.error(f"Error processing /plant/flow: {e}")
         return jsonify({"status": 500, "message": "Internal Server Error"}), 500
 
-@app.route("/tileformer", methods=['POST'])
-def tileformer():
-    try:
-        # Parse JSON payload
-        data = request.get_json()
-        if not data:
-            return {"error": "Request payload must be in JSON format"}, 400
+# Create or get the tile namespace
+tile_ns = Namespace('tile', description='Tile operations')
 
-        # Validate URLs
-        b04_url = data.get("image_url_b04")
-        b08_url = data.get("image_url_b08")
-        if not b04_url or not b08_url:
-            return {"error": "Both 'image_url_b04' and 'image_url_b08' parameters are required"}, 400
-
-        # Parse and validate bounding box parameters
+@tile_ns.route("/tileformer")
+class TileFormer(Resource):
+    @tile_ns.doc('generate_tile',
+        params={
+            'image_url_b04': 'URL for the B04 band image',
+            'image_url_b08': 'URL for the B08 band image',
+            'minx': 'Minimum X coordinate of bounding box',
+            'miny': 'Minimum Y coordinate of bounding box',
+            'maxx': 'Maximum X coordinate of bounding box',
+            'maxy': 'Maximum Y coordinate of bounding box',
+            'tile_size': 'Size of the output tile (default: 256)',
+            'algorithm': 'Processing algorithm (default: transformer)'
+        })
+    @tile_ns.response(200, 'Success')
+    @tile_ns.response(400, 'Validation Error')
+    @tile_ns.response(500, 'Internal Server Error')
+    def post(self):
         try:
-            minx = float(data.get("minx", -180))
-            miny = float(data.get("miny", -90))
-            maxx = float(data.get("maxx", 180))
-            maxy = float(data.get("maxy", 90))
-        except ValueError:
-            return {"error": "Bounding box parameters must be numeric"}, 400
+            # Parse JSON payload
+            data = request.get_json()
+            if not data:
+                return {"error": "Request payload must be in JSON format"}, 400
 
-        tile_size = int(data.get('tile_size', 256))
-        algorithm = data.get('algorithm', 'transformer')
+            # Validate URLs
+            b04_url = data.get("image_url_b04")
+            b08_url = data.get("image_url_b08")
+            if not b04_url or not b08_url:
+                return {"error": "Both 'image_url_b04' and 'image_url_b08' parameters are required"}, 400
 
-        bbox = [minx, miny, maxx, maxy]
+            # Parse and validate bounding box parameters
+            try:
+                minx = float(data.get("minx", -180))
+                miny = float(data.get("miny", -90))
+                maxx = float(data.get("maxx", 180))
+                maxy = float(data.get("maxy", 90))
+            except ValueError:
+                return {"error": "Bounding box parameters must be numeric"}, 400
 
-        # Generate and serve the tile
-        img_byte_arr = generate_tile(b04_url, b08_url, bbox, tile_size, algorithm)
-        
-        if img_byte_arr:
-            return send_file(img_byte_arr, mimetype='image/png')
-        else:
-            return {"error": f"Unsupported algorithm '{algorithm}'"}, 400
+            tile_size = int(data.get('tile_size', 256))
+            algorithm = data.get('algorithm', 'transformer')
 
-    except Exception as e:
-        return {"error": str(e)}, 500
+            bbox = [minx, miny, maxx, maxy]
+
+            # Generate and serve the tile
+            img_byte_arr = generate_tile(b04_url, b08_url, bbox, tile_size, algorithm)
+            
+            if img_byte_arr:
+                return send_file(img_byte_arr, mimetype='image/png')
+            else:
+                return {"error": f"Unsupported algorithm '{algorithm}'"}, 400
+
+        except Exception as e:
+            return {"error": str(e)}, 500
 
 # ====================
 # + Finalizing the App
