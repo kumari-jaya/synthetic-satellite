@@ -9,29 +9,17 @@ batch_size: 4
 num_inference_steps: 50
 guidance_scale: 7.5
 
-# Privacy Settings
-privacy_levels:
-  low:
-    blur_radius: 2
-    noise_factor: 0.1
-  medium:
-    blur_radius: 5
-    noise_factor: 0.2
-  high:
-    blur_radius: 10
-    noise_factor: 0.3
-
-# Cache Settings
-cache_enabled: true
-cache_dir: "cache"
-max_cache_size: 1000
+# System Settings
+device: "cpu"  # or "cuda" if GPU available
+num_workers: 4
+memory_limit: 0.9
 
 # Output Settings
 output_format: "png"
 output_quality: 95
 max_resolution: 2048
 
-# System Settings
-device: "cuda" # or "cpu" if no GPU available
-num_workers: 4
-memory_limit: 0.9  # 90% of available GPU memory
+# Cache Settings
+cache_enabled: true
+cache_dir: "cache"
+max_cache_size: 1000
