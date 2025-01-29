@@ -1,0 +1,135 @@
+site_name: Vortx
+site_url: https://vortx.ai
+repo_url: https://github.com/vortx-ai/vortx
+repo_name: vortx-ai/vortx
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: indigo
+      accent: purple
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: indigo
+      accent: lime
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.png
+  logo: assets/logo.png
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          setup_commands:
+            - import sys
+            - sys.path.append(".")
+          selection:
+            members: true
+          rendering:
+            show_source: true
+            show_if_no_docstring: true
+  - git-revision-date
+  - mkdocs-jupyter:
+      include_source: true
+      execute: false
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra:
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/vortx-ai/vortx
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/vortx
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/vortxai
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Basic Concepts: getting-started/concepts.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - Overview: user-guide/overview.md
+    - Data Sources: user-guide/data-sources.md
+    - Processing Pipelines: user-guide/pipelines.md
+    - ML Models: user-guide/ml-models.md
+    - Privacy Features: user-guide/privacy.md
+    - Performance Tuning: user-guide/performance.md
+  - Research Algorithms:
+    - Overview: research/overview.md
+    - Atmospheric Correction: research/atmospheric-correction.md
+    - Super-Resolution: research/super-resolution.md
+    - Cloud Detection: research/cloud-detection.md
+    - Change Detection: research/change-detection.md
+    - Synthetic Data: research/synthetic-data.md
+  - API Reference:
+    - Core API: api/core.md
+    - ML Models: api/models.md
+    - Data Sources: api/data-sources.md
+    - Processing: api/processing.md
+    - Privacy: api/privacy.md
+    - Utilities: api/utils.md
+  - Examples:
+    - Basic Usage: examples/basic.md
+    - ML Processing: examples/ml-processing.md
+    - Research Applications: examples/research.md
+    - Advanced Features: examples/advanced.md
+  - Deployment:
+    - Overview: deployment/overview.md
+    - Docker: deployment/docker.md
+    - Cloud: deployment/cloud.md
+    - Monitoring: deployment/monitoring.md
+  - Contributing:
+    - Guidelines: contributing/guidelines.md
+    - Development: contributing/development.md
+    - Documentation: contributing/documentation.md
+    - Testing: contributing/testing.md
+  - About:
+    - Release Notes: about/changelog.md
+    - License: about/license.md
+    - Team: about/team.md 

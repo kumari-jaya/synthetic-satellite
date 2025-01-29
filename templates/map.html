@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Synthetic Data Viewer</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        }
+        .layer-control {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="control-panel">
+        <div class="layer-control">
+            <h4>Layer Controls</h4>
+            <select id="baseLayer">
+                <option value="osm">OpenStreetMap</option>
+                <option value="satellite">Satellite</option>
+            </select>
+            <div>
+                <label>
+                    <input type="checkbox" id="syntheticLayer" checked>
+                    Synthetic Layer
+                </label>
+            </div>
+        </div>
+        <div class="generation-control">
+            <h4>Generation Settings</h4>
+            <textarea id="prompt" rows="3" placeholder="Enter prompt here...">A satellite view of terrain</textarea>
+            <textarea id="negativePrompt" rows="2" placeholder="Enter negative prompt here..."></textarea>
+            <button onclick="updateLayer()">Update Layer</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        var map = L.map('map').setView([0, 0], 2);
+
+        // Base layers
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri'
+        });
+
+        // Synthetic layer
+        var syntheticLayer = L.tileLayer('/api/v1/tiles/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            tms: false,
+            opacity: 0.7
+        }).addTo(map);
+
+        // Layer control
+        document.getElementById('baseLayer').onchange = function() {
+            if (this.value === 'osm') {
+                map.removeLayer(satellite);
+                map.addLayer(osm);
+            } else {
+                map.removeLayer(osm);
+                map.addLayer(satellite);
+            }
+        };
+
+        document.getElementById('syntheticLayer').onchange = function() {
+            if (this.checked) {
+                map.addLayer(syntheticLayer);
+            } else {
+                map.removeLayer(syntheticLayer);
+            }
+        };
+
+        function updateLayer() {
+            var prompt = document.getElementById('prompt').value;
+            var negativePrompt = document.getElementById('negativePrompt').value;
+            
+            // Update synthetic layer with new parameters
+            map.removeLayer(syntheticLayer);
+            syntheticLayer = L.tileLayer('/api/v1/tiles/{z}/{x}/{y}.png?' + 
+                'prompt=' + encodeURIComponent(prompt) + 
+                '&negative_prompt=' + encodeURIComponent(negativePrompt), {
+                maxZoom: 19,
+                tms: false,
+                opacity: 0.7
+            }).addTo(map);
+        }
+
+        // Add scale control
+        L.control.scale().addTo(map);
+    </script>
+</body>
+</html> 
