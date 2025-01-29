@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -21,7 +25,7 @@ import numpy as np
 from PIL import Image
 import io
 from shapely.geometry import shape, mapping
-from src.privacy.secure_encoding import SecureAPILayer
+from ..privacy.secure_encoding import SecureAPILayer
 from dotenv import load_dotenv
 from functools import wraps
 from werkzeug.utils import secure_filename
