@@ -171,7 +171,7 @@ If you use Vortx in your research, please cite:
 ## Links
 
 - **Website**: [https://vortx.ai](https://vortx.ai)
-- **Documentation**: [https://vortx.ai/docs](https://vortx.ai/docs)
+- **Documentation**: [https://github.com/Vortx-AI/synthetic-satellite/tree/main/docs](https://github.com/Vortx-AI/synthetic-satellite/tree/main/docs)
 - **Source Code**: [https://github.com/vortx-ai/vortx](https://github.com/vortx-ai/vortx)
 
 ## Acknowledgments
