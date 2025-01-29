@@ -158,4 +158,20 @@ sphinx>=7.0.0
 
 # Utilities
 python-dotenv>=1.0.0
-pyyaml>=6.0.0 
+pyyaml>=6.0.0
+
+# Flask-specific dependencies
+flask==2.0.1
+flask-cors==3.0.10
+flask-limiter==2.6.0
+flasgger==0.9.5
+werkzeug==2.0.1
+logging==0.5.1.2
+uuid==1.30
+gunicorn==20.1.0
+rasterio==1.2.10
+mercantile==1.2.1
+pillow==9.0.0
+shapely==1.8.0
+google-cloud-storage==2.5.0
+numpy==1.21.0 

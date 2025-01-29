@@ -24,6 +24,9 @@ from shapely.geometry import shape, mapping
 from secure_encoding import SecureAPILayer
 from dotenv import load_dotenv
 from functools import wraps
+from werkzeug.utils import secure_filename
+from google.cloud import storage
+import torch
 
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator
 
@@ -370,14 +373,237 @@ def download_result(filename):
         logger.error(f"Error downloading file: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Error handlers
-@app.errorhandler(404)
-def not_found_error(error):
-    return jsonify({'error': 'Not found'}), 404
+@app.route('/plant/flow', methods=['POST'])
+@limiter.limit("10 per minute")      # Apply rate limiting if needed
+@require_api_key('generate')         # Apply API key requirement based on permission
+def plant_flow():
+    """
+    Handle the generation of synthetic images with geo-privacy protection.
+    ---
+    tags:
+      - Plant Operations
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: Secret-Key
+        in: query
+        type: string
+        required: true
+        description: User Secret Key for authentication
+      - name: image
+        in: formData
+        type: file
+        required: true
+        description: Image file to upload
+    responses:
+      200:
+        description: Successfully generated synthetic image.
+        schema:
+          type: object
+          properties:
+            status:
+              type: integer
+              example: 200
+            message:
+              type: string
+              example: Success
+            description:
+              type: string
+              example: "Description extracted from image"
+            text1:
+              type: string
+              example: "Generated text from LLaMA model"
+            scene:
+              type: string
+              example: "Scene description for Stable Diffusion"
+            image:
+              type: string
+              example: "https://storage.cloud.google.com/appimage/geni1_20231005_123456.png"
+      400:
+        description: Bad Request - Invalid input or missing parameters.
+        schema:
+          type: object
+          properties:
+            status:
+              type: integer
+              example: 400
+            message:
+              type: string
+              example: "Invalid file type."
+      401:
+        description: Unauthorized - Invalid or missing API key.
+        schema:
+          type: object
+          properties:
+            status:
+              type: integer
+              example: 401
+            message:
+              type: string
+              example: "Unauthorized"
+      500:
+        description: Internal Server Error - An unexpected error occurred.
+        schema:
+          type: object
+          properties:
+            status:
+              type: integer
+              example: 500
+            message:
+              type: string
+              example: "Internal Server Error"
+    """
+    try:
+        # Clear GPU cache if needed
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({'error': 'Internal server error'}), 500
+        logger.info("Received a request to /plant/flow")
+
+        # === Authentication ===
+        secret_key = request.args.get("Secret-Key")
+        userId = request.args.get("user_id", '')
+
+        expected_secret = app.config.get("SECRET_KEY")
+        if secret_key != expected_secret:
+            logger.warning("Invalid secret key provided")
+            return jsonify({"status": 401, "message": "Unauthorized"}), 401
+
+        # === Image Validation ===
+        if "image" not in request.files:
+            logger.warning("No image part in the request")
+            return jsonify({"status": 400, "message": "No image part in request"}), 400
+
+        image = request.files["image"]
+        if image.filename == "":
+            logger.warning("No selected image")
+            return jsonify({"status": 400, "message": "No selected image"}), 400
+
+        if not image.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            logger.warning("Invalid file type uploaded")
+            return jsonify({"status": 400, "message": "Invalid file type. Only PNG, JPG, and JPEG are allowed."}), 400
+
+        # === Load Models ===
+        load_stable_diffusion_model()  # Load Stable Diffusion model
+        load_llama_model()             # Load LLaMA model
+
+        # === Save Uploaded Image ===
+        upload_folder = app.config.get("UPLOAD_FOLDER", "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
+
+        filename = secure_filename(image.filename)
+        upload_path = os.path.join(upload_folder, filename)
+        image.save(upload_path)
+        logger.info(f"Image saved to {upload_path}")
+
+        # === Image Description (BLIP Model) ===
+        description = extract_image_details(upload_path)
+        logger.info(f"Extracted description: {description}")
+
+        # === Generate Response (LLaMA Model) ===
+        prompt = (
+            f"From the sentence: \"{description}\", extract all living objects such as plants, animals, or any living entities. "
+            f"Respond ONLY json containing comma separated living object names, without any additional text or examples."
+        )
+        generated_text = generate_prompt_from_caption(prompt)
+        logger.info(f"Generated text: {generated_text}")
+
+        # Extract JSON portion
+        json_start = generated_text.find("{")
+        if json_start == -1:
+            raise ValueError("No JSON found in generated text")
+        json_part = generated_text[json_start:].strip()
+        response_dict = json.loads(json_part)
+
+        # Extract based on the structure of the JSON
+        living_objects = []
+        for key, value in response_dict.items():
+            if isinstance(value, str) and key.strip():  # Extract value if it's a string
+                living_objects.append(key.strip())       # Extract the key (e.g., "tomatoes")
+            elif isinstance(value, list):               # Handle lists if present
+                living_objects.extend([item.strip() for item in value if isinstance(item, str)])
+
+        # Ensure unique items
+        living_objects = list(set(living_objects))
+
+        logger.info(f"Extracted living objects: {living_objects}")
+
+        # Create a description for Stable Diffusion
+        prompt1 = (
+            f"Create a description for a stable diffusion prompt where \"{living_objects}\" are seen in a farm. "
+            f"Respond with only a descriptive sentence suitable for generating an image, without any extra text."
+        )
+        scene = generate_prompt_from_caption(prompt1)
+        logger.info(f"Scene description for Stable Diffusion: {scene}")
+
+        # === Generate Image (Stable Diffusion Model) ===
+        generated_image = generate_image_from_text(scene, None)
+
+        # === Save Generated Image ===
+        image_byte_array = io.BytesIO()
+        generated_image.save(image_byte_array, format='PNG', optimize=True, quality=85)
+
+        image_byte_array.seek(0)
+        now = datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        unique_filename = f"geni1_{timestamp}.png"
+        unique_filename1 = f"up1_{timestamp}.png"
+
+        # === Set Up Google Cloud Storage ===
+        service_account_path = "/home/jaya/syn_project/peak-sorter-432307-p8-c68a06a6da43.json"
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = service_account_path
+
+        bucket_name = "appimage"
+        client = storage.Client()
+        bucket = client.get_bucket(bucket_name)
+
+        blob = bucket.blob(unique_filename1)
+        with open(upload_path, "rb") as image_file:
+            blob.upload_from_file(image_file, content_type='image/png')
+
+        image_url1 = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename1}"
+
+        # === Upload Image to Google Cloud Storage ===
+        blob = bucket.blob(unique_filename)
+        blob.upload_from_string(image_byte_array.getvalue(), content_type='image/png')
+
+        # Generate public URL
+        image_url = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename}"
+
+        logger.info(f"Image uploaded successfully to: {image_url}")
+
+        create_log_entry(
+            user_id=userId,          # Set to None if no user
+            api_id='e780',           # Replace with actual api_id if available
+            text_input='',           # This is a dict and will be serialized
+            image_input=image_url1,  # Assuming no input image path is needed
+            image_output=image_url,  # Assuming no output image data is stored
+            status=200,              # Pass as integer
+            message="Success"
+        )
+
+        return jsonify({
+            "status": 200,
+            "message": "Success",
+            "description": description,
+            "text1": generated_text,
+            "scene": scene,
+            "image": image_url
+        }), 200
+
+    except ValueError as e:
+        logger.error(f"Value error: {e}")
+        return jsonify({"status": 400, "message": str(e)}), 400
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON error: {e}")
+        return jsonify({"status": 400, "message": "Failed to parse JSON response"}), 400
+    except Exception as e:
+        logger.error(f"Error processing /plant/flow: {e}")
+        return jsonify({"status": 500, "message": "Internal Server Error"}), 500
+
+# ====================
+# + Finalizing the App
+# ====================
 
 if __name__ == '__main__':
     # Create necessary directories
