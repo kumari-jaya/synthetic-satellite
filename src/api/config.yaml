@@ -1,7 +1,7 @@
 # Model Configuration
 stable_diffusion_model: "CompVis/stable-diffusion-v1-4"
 controlnet_model: "lllyasviel/sd-controlnet-canny"
-segmentation_model: "nvidia/segformer-b0-finetuned-ade-512-512"
+segmentation_model: "mit_b0"
 
 # Image Processing
 tile_size: 512
