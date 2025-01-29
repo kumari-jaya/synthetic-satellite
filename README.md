@@ -1,4 +1,4 @@
-# Vortx
+# Vortx.ai
 
 Advanced Earth Memory System for AGI and Geospatial Intelligence
 
@@ -12,11 +12,11 @@ Advanced Earth Memory System for AGI and Geospatial Intelligence
 
 ## Overview
 
-Vortx is a cutting-edge Earth Memory System designed for AGI and advanced geospatial analysis. It combines state-of-the-art ML models (including DeepSeek-R1 and DeepSeek-V3) with synthetic data generation to create rich, contextual memories of Earth observations. Key capabilities include:
+Vortx is a cutting-edge Earth Memory System designed for AGI and advanced geospatial analysis. It combines state-of-the-art ML models (including DeepSeek-R1/V3 and other SOTA models) with synthetic data generation to create rich, contextual memories of Earth observations. Key capabilities include:
 
 - 🧠 **AGI Memory Formation**: Create and retrieve complex Earth memories for AGI systems
 - 🌍 **Earth Observation**: Process and analyze multi-modal Earth data at scale
-- 🤖 **Advanced ML Models**: Integrated DeepSeek-R1 and DeepSeek-V3 for superior understanding
+- 🤖 **Advanced ML Models**: Integrated DeepSeek-R1/V3 and other SOTA models for superior understanding
 - 🎯 **Synthetic Data**: Generate high-quality synthetic data for training and simulation
 - ⚡ **High Performance**: GPU-accelerated processing with distributed computing
 - 🔒 **Privacy**: Advanced privacy-preserving techniques for sensitive data
@@ -166,10 +166,10 @@ The core platform is free to use. Enterprise features and support are available 
 If you use Vortx in your research, please cite:
 
 ```bibtex
-@software{vortx2024,
+@software{vortx2025,
   title={Vortx: Advanced Earth Memory System for AGI},
   author={Kumari, Jaya and Vortx Team},
-  year={2024},
+  year={2025},
   url={https://vortx.ai},
   version={0.1.0}
 }
@@ -183,4 +183,4 @@ If you use Vortx in your research, please cite:
 
 ## Acknowledgments
 
-Vortx builds upon several open-source projects and research papers, including DeepSeek's groundbreaking work. See our [Acknowledgments](docs/ACKNOWLEDGMENTS.md) for details.
+Vortx builds upon several open-source projects and research papers, including Global Community led groundbreaking work. See our [Acknowledgments](docs/ACKNOWLEDGMENTS.md) for details.
