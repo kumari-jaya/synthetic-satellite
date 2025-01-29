@@ -11,15 +11,45 @@
     <section>
       <h2>Basic Usage</h2>
       <pre><code>
-import { VortxAI } from 'vortx-ai';
+import { VortxAI } from '@vortx/ai-core';
 
 const vortx = new VortxAI({
-  apiKey: 'your-api-key'
+  apiKey: process.env.VORTX_API_KEY,
+  version: '2025.1',
+  region: 'auto'
 });
 
-// Example usage
-const result = await vortx.analyze(data);
-      </code></pre>
+// Modern async/await usage
+async function analyzeData() {
+  const result = await vortx.analyze({
+    input: data,
+    model: 'vortx-gpt-4',
+    temperature: 0.7
+  });
+  
+  console.log(result.predictions);
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>Advanced Features</h2>
+      <pre><code>
+// Stream responses
+const stream = await vortx.streamAnalysis({
+  input: largeDataset,
+  chunkSize: '1MB'
+});
+
+for await (const chunk of stream) {
+  console.log(chunk);
+}
+
+// Use WebAssembly acceleration
+await vortx.enableWasm();
+const fastResult = await vortx.analyze({
+  input: data,
+  accelerator: 'wasm'
+});</code></pre>
     </section>
 
     <!-- Add more code samples -->

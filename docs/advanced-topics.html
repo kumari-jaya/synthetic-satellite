@@ -10,12 +10,49 @@
     
     <section>
       <h2>Custom Configurations</h2>
-      <!-- Add advanced configuration details -->
+      <p>Configure Vortx.ai for enterprise usage with our advanced settings (Updated for 2025):</p>
+      <pre><code>
+const config = {
+  enterprise: {
+    maxConcurrency: 100,
+    timeout: '30s',
+    retryStrategy: 'exponential',
+    caching: {
+      type: 'redis',
+      ttl: '24h'
+    }
+  },
+  security: {
+    encryption: 'AES-256-GCM',
+    apiKeyRotation: true
+  }
+}</code></pre>
     </section>
     
     <section>
       <h2>API Integration</h2>
-      <!-- Add API integration examples -->
+      <p>Our 2025 API supports both REST and GraphQL:</p>
+      <pre><code>
+// GraphQL Example
+const query = `
+  query AnalyzeData($input: JSON!) {
+    analyze(input: $input) {
+      predictions
+      confidence
+      metadata
+    }
+  }
+`;
+
+// REST Example
+await fetch('https://api.vortx.ai/v2025/analyze', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ input: data })
+});</code></pre>
     </section>
     
     <section>
