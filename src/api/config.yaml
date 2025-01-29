@@ -11,14 +11,8 @@ guidance_scale: 7.5
 
 # System Settings
 device: "cpu"  # or "cuda" if GPU available
-memory_limit: 0.9
 
 # Output Settings
 output_format: "png"
 output_quality: 95
 max_resolution: 2048
-
-# Cache Settings
-cache_enabled: true
-cache_dir: "cache"
-max_cache_size: 1000
