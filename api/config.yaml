@@ -1,0 +1,16 @@
+# Model Configuration
+stable_diffusion_model: "CompVis/stable-diffusion-v1-4"
+controlnet_model: "lllyasviel/sd-controlnet-canny"
+segmentation_model: "mit_b0"
+
+# Image Processing
+tile_size: 512
+batch_size: 4
+num_inference_steps: 50
+guidance_scale: 7.5
+
+# System Settings
+device: "cpu"  # or "cuda" if GPU available
+
+# Output Settings
+output_format: "png"

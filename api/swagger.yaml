@@ -1,0 +1,118 @@
+swagger: '2.0'
+info:
+  title: Synthetic Satellite Image API
+  description: API for generating and serving synthetic satellite imagery
+  version: '1.0.0'
+basePath: /api/v1
+schemes:
+  - http
+  - https
+securityDefinitions:
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: X-API-Key
+paths:
+  /generate:
+    post:
+      summary: Generate synthetic image
+      security:
+        - ApiKeyAuth: []
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: image
+          in: formData
+          type: file
+          required: true
+          description: Input image file
+        - name: prompt
+          in: formData
+          type: string
+          required: false
+          description: Text prompt for image generation
+        - name: negative_prompt
+          in: formData
+          type: string
+          required: false
+          description: Negative prompt for image generation
+        - name: protection_level
+          in: formData
+          type: string
+          required: false
+          default: high
+          description: Level of geo-privacy protection
+      responses:
+        200:
+          description: Successfully generated image
+        401:
+          description: Invalid API key
+        500:
+          description: Server error
+
+  /tiles/{z}/{x}/{y}.png:
+    get:
+      summary: Get map tile
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: z
+          in: path
+          type: integer
+          required: true
+          description: Zoom level
+        - name: x
+          in: path
+          type: integer
+          required: true
+          description: Tile X coordinate
+        - name: y
+          in: path
+          type: integer
+          required: true
+          description: Tile Y coordinate
+        - name: image_url
+          in: query
+          type: string
+          required: true
+          description: URL of source image
+      responses:
+        200:
+          description: Successfully retrieved tile
+        401:
+          description: Invalid API key
+        500:
+          description: Server error
+
+  /capabilities:
+    get:
+      summary: Get server capabilities
+      responses:
+        200:
+          description: Server capabilities
+
+  /plant/flow:
+    post:
+      summary: Plant flow processing
+      security:
+        - ApiKeyAuth: []
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: Secret-Key
+          in: query
+          type: string
+          required: true
+          description: User Secret Key for authentication
+        - name: image
+          in: formData
+          type: file
+          required: true
+          description: Image file to upload
+      responses:
+        200:
+          description: Successfully processed plant flow
+        401:
+          description: Unauthorized
+        500:
+          description: Server error 
