@@ -8,8 +8,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flasgger import Swagger, swag_from
 import yaml
 
-
-
 import threading
 from werkzeug.utils import secure_filename
 import torch
@@ -17,9 +15,8 @@ from io import BytesIO
 
 # Import model load functions
 
-
 # Add this import for type annotations
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 # Add the project root to Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -47,7 +44,7 @@ load_dotenv()
 
 import json
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 import logging
 from logging.handlers import RotatingFileHandler
@@ -64,6 +61,17 @@ from werkzeug.utils import secure_filename
 from google.cloud import storage
 import torch
 import base64
+
+# Additional Imports for New Endpoints
+from core.memory import EarthMemoryStore
+from core.synthesis import SynthesisPipeline
+from core.data_sources import (
+    SatelliteDataSource,
+    WeatherDataSource,
+    ElevationDataSource,
+    LandUseDataSource,
+    ClimateDataSource
+)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -180,6 +188,10 @@ def get_tile_key(z: int, x: int, y: int, params: Dict[str, Any]) -> str:
     param_str = json.dumps(params, sort_keys=True)
     return f"{z}_{x}_{y}_{param_str}"
 
+# ====================
+# + Existing Routes
+# ====================
+
 @app.route('/')
 def index():
     """Root endpoint - redirect to API documentation"""
@@ -282,11 +294,11 @@ def generate_synthetic():
         # Extract parameters
         image_params = data['image_parameters']
         resolution = image_params.get('resolution', 1024)
-        format = image_params.get('format', 'png')
+        format_ = image_params.get('format', 'png')
 
         # Your implementation to generate the synthetic image
         # For example:
-        # image_url = generator.generate_image(resolution, format)
+        # image_url = generator.generate_image(resolution, format_)
         image_url = "http://34.45.181.99:5000/api/v1/download/generated_image.png"  # Placeholder
 
         return jsonify({"image_url": image_url}), 200
@@ -535,10 +547,10 @@ def download_result(filename):
         logger.error(f"Error in download_result: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/plant/flow', methods=['POST'])
+@app.route('/locen', methods=['POST'])
 @limiter.limit("10 per minute")
 @require_api_key('generate')
-def plant_flow():
+def locen():
     """
     Handle Generation of Synthetic Images with Geo-Privacy Protection
     ---
@@ -560,17 +572,17 @@ def plant_flow():
               properties:
                 input_data:
                   type: string
-                  example: "Some input data for plant flow"
+                  example: "Some input data for locen"
                 # Add other relevant parameters
     responses:
       200:
-        description: Successfully processed plant flow
+        description: Successfully processed locen
         schema:
           type: object
           properties:
             result_url:
               type: string
-              example: http://34.45.181.99:5000/api/v1/download/plant_flow_result.png
+              example: http://34.45.181.99:5000/api/v1/download/locen.png
       400:
         description: Invalid input parameters
         schema:
@@ -597,7 +609,17 @@ def plant_flow():
               example: "Detailed error message"
     """
     try:
-        image = request.files['image']
+        data = request.get_json()
+        if not data or 'flow_parameters' not in data:
+            return jsonify({"error": "Missing 'flow_parameters' in request body"}), 400
+
+        flow_params = data['flow_parameters']
+        input_data = flow_params.get('input_data')
+        if not input_data:
+            return jsonify({"error": "Missing 'input_data' in 'flow_parameters'"}), 400
+
+        # Handle image upload if present
+        image = request.files.get('image')
         if image:
             upload_folder = app.config['UPLOAD_FOLDER']
             os.makedirs(upload_folder, exist_ok=True)
@@ -605,28 +627,33 @@ def plant_flow():
             filename = secure_filename(image.filename)
             upload_path = os.path.join(upload_folder, filename)
             image.save(upload_path)
-        
-        
+        else:
+            upload_path = None  # Handle accordingly
+
         # === Load Models ===
         load_stable_diffusion_model()  # Load Stable Diffusion model
-        load_llama_model()   
+        load_llama_model()
 
         # === Image Description (BLIP Model) ===
-        description = extract_image_details(upload_path)
-        logger.info(f"Extracted description: {description}")
+        if upload_path:
+            description = extract_image_details(upload_path)
+            logger.info(f"Extracted description: {description}")
+        else:
+            description = "No image provided."
+            logger.info("No image uploaded for description extraction.")
 
         # === Generate Response (LLaMA Model) ===
         prompt = (
-                f"From the sentence: \"{description}\", extract all living objects such as plants, animals, or any living entities. "
-                f"Respond ONLY json containing comma separated living object names, without any additional text or examples."
-          )
+            f"From the sentence: \"{description}\", extract all living objects such as plants, animals, or any living entities. "
+            f"Respond ONLY json containing comma separated living object names, without any additional text or examples."
+        )
         generated_text = generate_prompt_from_caption(prompt)
         logger.info(f"Generated text: {generated_text}")
 
         # Extract JSON portion
         json_start = generated_text.find("{")
         if json_start == -1:
-          raise ValueError("No JSON found in generated text")
+            raise ValueError("No JSON found in generated text")
 
         # Parse the JSON
         json_part = generated_text[json_start:].strip()
@@ -635,86 +662,86 @@ def plant_flow():
         # Extract based on the structure of the JSON
         living_objects = []
         for key, value in response_dict.items():
-          if isinstance(value, str) and key.strip():  # Extract value if it's a string
-            living_objects.append(key.strip())  # Extract the key (e.g., "tomatoes")
-          elif isinstance(value, list):  # Handle lists if present
-            living_objects.extend([item.strip() for item in value if isinstance(item, str)])
+            if isinstance(value, str) and key.strip():  # Extract value if it's a string
+                living_objects.append(key.strip())  # Extract the key (e.g., "tomatoes")
+            elif isinstance(value, list):  # Handle lists if present
+                living_objects.extend([item.strip() for item in value if isinstance(item, str)])
 
-          # Ensure unique items
-          living_objects = list(set(living_objects))
+        # Ensure unique items
+        living_objects = list(set(living_objects))
 
-          logger.info(f"Extracted living objects: {living_objects}")
+        logger.info(f"Extracted living objects: {living_objects}")
 
-          # Create a description for Stable Diffusion
-          prompt1 = (
-                f"Create a description for a stable diffusion prompt where \"{living_objects}\" are seen in a farm. "
-                f"Respond with only a descriptive sentence suitable for generating an image, without any extra text."
-          )
-          scene = generate_prompt_from_caption(prompt1)
+        # Create a description for Stable Diffusion
+        prompt1 = (
+            f"Create a description for a stable diffusion prompt where \"{', '.join(living_objects)}\" are seen in a farm. "
+            f"Respond with only a descriptive sentence suitable for generating an image, without any extra text."
+        )
+        scene = generate_prompt_from_caption(prompt1)
 
-          logger.info(f"Scene description for Stable Diffusion: {scene}")
+        logger.info(f"Scene description for Stable Diffusion: {scene}")
 
-          # Handle potential extra content
-          content_start = scene.find("\n\n")
-          if content_start != -1:
+        # Handle potential extra content
+        content_start = scene.find("\n\n")
+        if content_start != -1:
             extracted_content = scene[content_start + 2:].strip()
             print(extracted_content)
-          else:
+        else:
             extracted_content = scene
 
-          # === Generate Image (Stable Diffusion Model) ===
-          generated_image = generate_image_from_text(extracted_content, None)
+        # === Generate Image (Stable Diffusion Model) ===
+        generated_image = generate_image_from_text(extracted_content, None)
 
-          # === Save Generated Image ===
-          image_byte_array = io.BytesIO()
-          generated_image.save(image_byte_array, format='PNG', optimize=True, quality=85)
+        # === Save Generated Image ===
+        image_byte_array = io.BytesIO()
+        generated_image.save(image_byte_array, format='PNG', optimize=True, quality=85)
 
-          image_byte_array.seek(0)
-          now = datetime.now()
-          timestamp = now.strftime("%Y%m%d_%H%M%S")
-          unique_filename = f"geni1_{timestamp}.png"
-          unique_filename1 = f"up1_{timestamp}.png"
+        image_byte_array.seek(0)
+        now = datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        unique_filename = f"geni1_{timestamp}.png"
+        unique_filename1 = f"up1_{timestamp}.png"
 
-          # === Set Up Google Cloud Storage ===
-          service_account_path = os.getenv("SERVICE_ACCOUNT")
-          os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = service_account_path
+        # === Set Up Google Cloud Storage ===
+        service_account_path = os.getenv("SERVICE_ACCOUNT")
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = service_account_path
 
-          bucket_name = os.getenv("BUCKET_NAME")
-          client = storage.Client()
-          bucket = client.get_bucket(bucket_name)
+        bucket_name = os.getenv("BUCKET_NAME")
+        client = storage.Client()
+        bucket = client.get_bucket(bucket_name)
 
-          blob = bucket.blob(unique_filename1)
-          with open(upload_path, "rb") as image_file:
-            blob.upload_from_file(image_file, content_type='image/png')
+        if upload_path:
+            blob = bucket.blob(unique_filename1)
+            with open(upload_path, "rb") as image_file:
+                blob.upload_from_file(image_file, content_type='image/png')
 
-          #blob.upload_from_string(upload_path.getvalue(), content_type='image/png')
-          image_url1 = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename1}"
+            image_url1 = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename1}"
+        else:
+            image_url1 = None
 
+        # === Upload Image to Google Cloud Storage ===
+        blob = bucket.blob(unique_filename)
+        blob.upload_from_string(image_byte_array.getvalue(), content_type='image/png')
 
-          # === Upload Image to Google Cloud Storage ===
-          blob = bucket.blob(unique_filename)
-          blob.upload_from_string(image_byte_array.getvalue(), content_type='image/png')
+        # Generate public URL
+        image_url = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename}"
 
-          # Generate public URL
-          image_url = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename}"
+        # Unload models if necessary
+        unload_stable_diffusion_model()
+        unload_llama_model()
 
-        
-
-        # Your implementation to process plant flow
+        # Your implementation to process locen
         # For example:
-        # result_url = generator.process_plant_flow(input_data)
-        return {
-                "status": 200,
-                "message": "Success", 
-                "description": description,
-                "text1": generated_text,
-                "scene": scene,
-                "image": image_url
-            }, 200
-
-    except Exception as e:
-        logger.error(f"Error in plant_flow: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        # result_url = generator.process_locen(input_data)
+        return jsonify({
+            "status": 200,
+            "message": "Success",
+            "description": description,
+            "text1": generated_text,
+            "scene": scene,
+            "image": image_url,
+            "uploaded_image_url": image_url1
+        }), 200
 
 @app.route("/tileformer", methods=['POST'])
 @limiter.limit("10 per minute")
@@ -840,12 +867,437 @@ def tileformer():
         img_byte_arr = generate_tile(b04_url, b08_url, bbox, tile_size, algorithm)
 
         if img_byte_arr:
+            img_byte_arr.seek(0)
             return send_file(img_byte_arr, mimetype='image/png')
         else:
             return jsonify({"error": f"Unsupported algorithm '{algorithm}'"}), 400
 
     except Exception as e:
         logger.error(f"Error in tileformer: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# ====================
+# + New Memory Analysis Endpoints
+# ====================
+
+# Initialize services for memory APIs
+memory_store = EarthMemoryStore(Path("/app/data/memories"))
+
+data_sources_memory = [
+    SatelliteDataSource(
+        name="sentinel2",
+        resolution=10.0,
+        bands=["B02", "B03", "B04", "B08"],  # RGB + NIR
+        data_path=Path("/app/data/satellite")
+    )
+    # Add other data sources if needed
+]
+
+pipeline_memory = SynthesisPipeline(
+    data_sources=data_sources_memory,
+    memory_store=memory_store
+)
+
+@app.route('/api/v1/memory/query', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def query_memories():
+    """
+    Query memories by location and time range.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+          properties:
+            latitude:
+              type: number
+              format: float
+              example: 34.05
+            longitude:
+              type: number
+              format: float
+              example: -118.25
+            start_time:
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
+            end_time:
+              type: string
+              format: date-time
+              example: "2023-12-31T23:59:59Z"
+            limit:
+              type: integer
+              example: 5
+    responses:
+      200:
+        description: Successfully queried memories
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              coordinates:
+                type: array
+                items:
+                  type: number
+                example: [34.05, -118.25]
+              timestamp:
+                type: string
+                format: date-time
+              metadata:
+                type: object
+              embedding:
+                type: array
+                items:
+                  type: number
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        limit = data.get('limit', 5)
+
+        # Parse datetime strings if provided
+        time_range = None
+        if start_time_str and end_time_str:
+            try:
+                start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+                time_range = (start_time, end_time)
+            except ValueError:
+                return jsonify({"error": "Invalid datetime format"}), 400
+
+        # Query memories
+        memories = memory_store.query_memories(
+            coordinates=(latitude, longitude),
+            time_range=time_range,
+            k=limit
+        )
+
+        # Prepare response
+        response = []
+        for mem in memories:
+            response.append({
+                "coordinates": mem["coordinates"],
+                "timestamp": mem["timestamp"].isoformat(),
+                "metadata": mem["metadata"],
+                "embedding": mem["embedding"].tolist()
+            })
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Error in query_memories: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/memory/process', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def process_location():
+    """
+    Process a new location and store it in memory.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+            - timestamp
+          properties:
+            latitude:
+              type: number
+              format: float
+              example: 34.05
+            longitude:
+              type: number
+              format: float
+              example: -118.25
+            timestamp:
+              type: string
+              format: date-time
+              example: "2023-06-15T12:00:00Z"
+            metadata:
+              type: object
+              example: {"additional_info": "Sample metadata"}
+    responses:
+      200:
+        description: Successfully processed location
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            embedding:
+              type: array
+              items:
+                type: number
+            metadata:
+              type: object
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude', 'timestamp']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        timestamp_str = data['timestamp']
+        metadata = data.get('metadata')
+
+        # Parse datetime string
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({"error": "Invalid datetime format"}), 400
+
+        # Process location
+        result = pipeline_memory.process_location(
+            coordinates=(latitude, longitude),
+            timestamp=timestamp,
+            metadata=metadata
+        )
+
+        return jsonify({
+            "status": "success",
+            "embedding": result["embedding"].tolist(),
+            "metadata": result["metadata"]
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in process_location: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/memory/process_time_series', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def process_time_series():
+    """
+    Process a location across a time range.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+            - start_time
+            - end_time
+          properties:
+            latitude:
+              type: number
+              format: float
+              example: 34.05
+            longitude:
+              type: number
+              format: float
+              example: -118.25
+            start_time:
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
+            end_time:
+              type: string
+              format: date-time
+              example: "2023-12-31T23:59:59Z"
+            interval_days:
+              type: integer
+              example: 1
+    responses:
+      200:
+        description: Successfully processed time series
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            count:
+              type: integer
+              example: 365
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  embedding:
+                    type: array
+                    items:
+                      type: number
+                  metadata:
+                    type: object
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude', 'start_time', 'end_time']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        start_time_str = data['start_time']
+        end_time_str = data['end_time']
+        interval_days = data.get('interval_days', 1)
+
+        # Parse datetime strings
+        try:
+            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({"error": "Invalid datetime format"}), 400
+
+        # Process time series data
+        results = pipeline_memory.process_time_series(
+            coordinates=(latitude, longitude),
+            time_range=(start_time, end_time),
+            interval_days=interval_days
+        )
+
+        # Prepare response
+        response_results = []
+        for result in results:
+            response_results.append({
+                "timestamp": result["metadata"]["timestamp"].isoformat(),
+                "embedding": result["embedding"].tolist(),
+                "metadata": result["metadata"]
+            })
+
+        return jsonify({
+            "status": "success",
+            "count": len(results),
+            "results": response_results
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in process_time_series: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/memory/health', methods=['GET'])
+@limiter.exempt
+def memory_health_check():
+    """
+    Check the health of the memory service.
+    ---
+    responses:
+      200:
+        description: Returns the health status of the memory service
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: healthy
+            memory_count:
+              type: integer
+              example: 1500
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Detailed error message"
+    """
+    try:
+        return jsonify({
+            "status": "healthy",
+            "memory_count": len(memory_store.memory_index)
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in memory_health_check: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 # ====================
@@ -861,4 +1313,4 @@ if __name__ == '__main__':
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),
         debug=False
-    ) 
+    )
