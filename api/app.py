@@ -553,60 +553,6 @@ def download_result(filename):
 def locen():
     """
     Handle Generation of Synthetic Images with Geo-Privacy Protection
-    ---
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - flow_parameters
-          properties:
-            flow_parameters:
-              type: object
-              required:
-                - input_data
-              properties:
-                input_data:
-                  type: string
-                  example: "Some input data for locen"
-                # Add other relevant parameters
-    responses:
-      200:
-        description: Successfully processed locen
-        schema:
-          type: object
-          properties:
-            result_url:
-              type: string
-              example: http://34.45.181.99:5000/api/v1/download/locen.png
-      400:
-        description: Invalid input parameters
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: "Missing 'flow_parameters' in request body"
-      401:
-        description: Unauthorized - Invalid or missing API key
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: "Invalid or missing API key"
-      500:
-        description: Internal Server Error
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: "Detailed error message"
     """
     try:
         data = request.get_json()
@@ -645,7 +591,7 @@ def locen():
         # === Generate Response (LLaMA Model) ===
         prompt = (
             f"From the sentence: \"{description}\", extract all living objects such as plants, animals, or any living entities. "
-            f"Respond ONLY json containing comma separated living object names, without any additional text or examples."
+            f"Respond ONLY with JSON containing comma-separated living object names, without any additional text or examples."
         )
         generated_text = generate_prompt_from_caption(prompt)
         logger.info(f"Generated text: {generated_text}")
@@ -685,7 +631,6 @@ def locen():
         content_start = scene.find("\n\n")
         if content_start != -1:
             extracted_content = scene[content_start + 2:].strip()
-            print(extracted_content)
         else:
             extracted_content = scene
 
@@ -710,6 +655,7 @@ def locen():
         client = storage.Client()
         bucket = client.get_bucket(bucket_name)
 
+        # Upload original image if provided
         if upload_path:
             blob = bucket.blob(unique_filename1)
             with open(upload_path, "rb") as image_file:
@@ -719,20 +665,17 @@ def locen():
         else:
             image_url1 = None
 
-        # === Upload Image to Google Cloud Storage ===
+        # === Upload Generated Image to Google Cloud Storage ===
         blob = bucket.blob(unique_filename)
         blob.upload_from_string(image_byte_array.getvalue(), content_type='image/png')
 
         # Generate public URL
         image_url = f"https://storage.cloud.google.com/{bucket_name}/{unique_filename}"
 
-        # Unload models if necessary
+        # Unload models after use to free memory
         unload_stable_diffusion_model()
         unload_llama_model()
 
-        # Your implementation to process locen
-        # For example:
-        # result_url = generator.process_locen(input_data)
         return jsonify({
             "status": 200,
             "message": "Success",
@@ -742,6 +685,11 @@ def locen():
             "image": image_url,
             "uploaded_image_url": image_url1
         }), 200
+
+    except Exception as e:
+        logger.error(f"Error in locen: {str(e)}")
+        return jsonify({"error": str(e)}), 500  
+ 
 
 @app.route("/tileformer", methods=['POST'])
 @limiter.limit("10 per minute")
