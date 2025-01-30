@@ -74,8 +74,8 @@ pip install -r requirements-docs.txt
 ```
 
 ### Coming Soon
-- PyPI Package (Q2 2024): `pip install vortx`
-- Docker Images (Q2 2024): `docker pull vortx/vortx:latest`
+- PyPI Package (Feb 2025): `pip install vortx`
+- Docker Images (Feb 2025): `docker pull vortx/vortx:latest`
 
 ### System Requirements
 
