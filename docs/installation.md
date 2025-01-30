@@ -1,180 +1,249 @@
 # Installation Guide
 
-This guide will help you install Vortx and its dependencies. Vortx supports multiple installation methods depending on your needs.
+## Quick Start
 
-## Quick Installation
-
-The simplest way to install Vortx is via pip:
-
+### From Source (Recommended)
 ```bash
-pip install vortx
-```
-
-For development installation with all optional dependencies:
-
-```bash
-pip install vortx[all]
-```
-
-## Requirements
-
-### System Requirements
-
-- Python 3.9 or higher
-- CUDA 11.8 or higher (for GPU support)
-- At least 8GB RAM (16GB recommended)
-- 20GB free disk space
-
-### Core Dependencies
-
-Vortx relies on several key libraries:
-
-- PyTorch (≥2.0.0) for deep learning
-- Rasterio (≥1.3.0) for geospatial data handling
-- GeoPandas (≥0.12.0) for vector data processing
-- Ray (≥2.3.0) and Dask (≥2023.3.0) for distributed computing
-
-## Installation Methods
-
-### 1. Using pip (Recommended)
-
-```bash
-# Basic installation
-pip install vortx
-
-# With all optional dependencies
-pip install vortx[all]
-
-# With specific feature sets
-pip install vortx[gpu]  # GPU support
-pip install vortx[ml]   # Machine learning features
-pip install vortx[viz]  # Visualization tools
-pip install vortx[dev]  # Development tools
-```
-
-### 2. From Source
-
-```bash
+# Clone the repository
 git clone https://github.com/vortx-ai/vortx.git
 cd vortx
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install in development mode
 pip install -e .
+
+# Optional: Install development dependencies
+pip install -e .[dev]
 ```
 
-### 3. Using Docker
-
+### Using pip (Coming Soon)
 ```bash
+# Note: Package not yet available on PyPI
+# Expected release: Q2 2024
+
+# Basic installation
+pip install vortx  # Coming soon
+
+# Install with all optional dependencies
+pip install vortx[all]  # Coming soon
+
+# Install specific feature sets
+pip install vortx[gpu]     # GPU acceleration
+pip install vortx[ml]      # Machine learning features
+pip install vortx[viz]     # Visualization tools
+```
+
+### Using Docker (Coming Soon)
+```bash
+# Note: Images not yet available on Docker Hub
+# Expected release: Q2 2024
+
 # Pull the latest image
-docker pull vortx/vortx:latest
+docker pull vortx/vortx:latest  # Coming soon
 
 # Run with GPU support
-docker run --gpus all -it vortx/vortx:latest
+docker run --gpus all -p 8000:8000 vortx/vortx:latest
+
+# Run with mounted data directory
+docker run -v /path/to/data:/data -p 8000:8000 vortx/vortx:latest
 ```
 
-## Optional Dependencies
+## System Requirements
 
-Vortx has several optional dependency groups:
+### Minimum Requirements
+- Python 3.9+
+- 8GB RAM
+- 4 CPU cores
+- 10GB disk space
+
+### Recommended Requirements
+- Python 3.9+
+- 32GB RAM
+- 8+ CPU cores
+- NVIDIA GPU with 8GB+ VRAM
+- 50GB SSD storage
+
+### Optional Requirements
+- CUDA 11.x or later (for GPU acceleration)
+- Docker 20.10 or later (coming soon)
+- Node.js 16+ (for web interface, coming soon)
+
+## Feature-specific Dependencies
 
 ### GPU Acceleration
-- CUDA Toolkit ≥11.8
-- cupy-cuda11x ≥12.0.0
-- onnxruntime-gpu ≥1.15.0
-- TensorRT ≥8.6.0
+```bash
+# Install CUDA toolkit first
+# For Ubuntu:
+sudo apt-get update
+sudo apt-get install -y nvidia-driver-525 nvidia-cuda-toolkit
+
+# Install GPU dependencies
+pip install -r requirements-gpu.txt
+```
 
 ### Machine Learning
-- torchvision ≥0.15.0
-- transformers ≥4.30.0
-- timm ≥0.9.0
-- segmentation-models-pytorch ≥0.3.0
+```bash
+# Install ML dependencies
+pip install -r requirements-ml.txt
 
-### Synthetic Data Generation
-- noise ≥1.2.2
-- perlin-noise ≥1.12
-- trimesh ≥4.0.0
-- pyrender ≥0.1.45
+# Optional: Install specific model weights (coming soon)
+# vo download-models --model deepseek-vl
+```
 
-### Monitoring and Metrics
-- prometheus-client ≥0.16.0
-- wandb ≥0.15.0
-- mlflow ≥2.7.0
+### Visualization Tools
+```bash
+# Install visualization dependencies
+pip install -r requirements-viz.txt
+
+# Required system packages (Ubuntu)
+sudo apt-get install -y libgl1-mesa-glx
+```
 
 ## Environment Setup
 
-### 1. Using conda
-
+### Environment Variables
 ```bash
-# Create a new conda environment
-conda create -n vortx python=3.9
-conda activate vortx
+# Core settings
+export VORTX_HOME=/path/to/vortx/data
+export VORTX_CACHE_DIR=/path/to/cache
+export VORTX_CONFIG=/path/to/config.yaml
 
-# Install Vortx
-pip install vortx[all]
+# API keys (if using cloud services)
+export VORTX_API_KEY=your_api_key
+export AWS_ACCESS_KEY_ID=your_aws_key
+export AWS_SECRET_ACCESS_KEY=your_aws_secret
 ```
 
-### 2. Using venv
+### Configuration File
+```yaml
+# config.yaml
+storage:
+  type: local  # or s3, gcs
+  path: /path/to/data
+  cache_size: 10GB
 
-```bash
-# Create a new virtual environment
-python -m venv vortx-env
-source vortx-env/bin/activate  # Linux/Mac
-vortx-env\Scripts\activate     # Windows
+compute:
+  device: cuda  # or cpu
+  num_workers: 4
+  batch_size: 32
 
-# Install Vortx
-pip install vortx[all]
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: false
 ```
 
-## Command Line Interface
+## Development Setup
 
-Vortx provides a convenient command-line interface through the `vo` command:
-
+### Setting up for Development
 ```bash
-# Get help
-vo --help
+# Clone the repository
+git clone https://github.com/vortx-ai/vortx.git
+cd vortx
 
-# Process data
-vo process input.tif output.tif --model super-res
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
 
-# Start server
-vo serve --port 8000
+# Install development dependencies
+pip install -r requirements-dev.txt
 
-# Run pipeline
-vo pipeline config.yaml
+# Install pre-commit hooks
+pre-commit install
+
+# Run tests
+pytest tests/
+
+# Run style checks
+black vortx/
+isort vortx/
+flake8 vortx/
+```
+
+### Building Documentation
+```bash
+# Install documentation dependencies
+pip install -r requirements-docs.txt
+
+# Build documentation
+mkdocs build
+
+# Serve documentation locally
+mkdocs serve
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. CUDA/GPU Issues
+1. **GPU Not Detected**
 ```bash
-# Check CUDA availability
+# Check CUDA installation
+nvidia-smi
+
+# Verify PyTorch CUDA support
 python -c "import torch; print(torch.cuda.is_available())"
 ```
 
-2. Memory Issues
+2. **Memory Issues**
 ```bash
-# Set memory limits for GPU
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+# Adjust memory limits in config.yaml
+memory:
+  cache_size: 4GB
+  max_batch_size: 16
 ```
 
-3. Dependency Conflicts
+3. **Import Errors**
 ```bash
-# Clean installation
-pip uninstall vortx
-pip cache purge
-pip install vortx --no-cache-dir
+# Verify installation
+python -c "import vortx; print(vortx.__version__)"
+
+# Check Python path
+python -c "import sys; print(sys.path)"
 ```
 
 ### Getting Help
 
-If you encounter any issues:
+- **Documentation**: Visit [https://vortx.ai/docs](https://vortx.ai/docs)
+- **GitHub Issues**: Report bugs at [https://github.com/vortx-ai/vortx/issues](https://github.com/vortx-ai/vortx/issues)
+- **Discord Community**: Join our [Discord server](https://discord.gg/vortx)
+- **Email Support**: Contact support@vortx.ai
 
-1. Check our [FAQ](https://vortx.ai/docs/faq)
-2. Search existing [GitHub Issues](https://github.com/vortx-ai/vortx/issues)
-3. Join our [Discord Community](https://discord.gg/vortx)
-4. Contact support at support@vortx.ai
+## Upgrading
 
-## Next Steps
+### Version Upgrades
+```bash
+# Currently only available through git
+git pull origin main
+pip install -e .
+```
 
-- Read the [Quick Start Guide](./quickstart.md)
-- Explore [Examples](./examples/index.md)
-- Check out our [API Reference](./api/index.md) 
+### Migration Guide
+- See [MIGRATION.md](MIGRATION.md) for version-specific upgrade notes
+- Back up your configuration before upgrading
+- Test in a staging environment first
+
+## Security Considerations
+
+### API Keys
+- Store API keys in environment variables
+- Use `.env` files for local development
+- Never commit API keys to version control
+
+### Network Security
+- Configure firewall rules
+- Use HTTPS for production
+- Set appropriate CORS policies
+
+### Data Privacy
+- Enable encryption at rest
+- Configure access controls
+- Follow data retention policies 

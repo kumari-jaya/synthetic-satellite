@@ -1,0 +1,16 @@
+# Visualization dependencies
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.13.0
+folium>=0.14.0
+ipyleaflet>=0.17.0
+pyvista>=0.42.3
+meshio>=5.3.4
+pygltflib>=1.16.1
+open3d>=0.17.0
+pillow>=10.1.0
+opencv-python>=4.8.1
+dash>=2.14.0
+panel>=1.3.0
+holoviews>=1.17.0
+bokeh>=3.3.0 

@@ -1,40 +1,39 @@
-site_name: Vortx
-site_url: https://vortx.ai
+site_name: Vortx Documentation
+site_description: Documentation for the Vortx AGI Earth Memory System
+site_author: Vortx Team
 repo_url: https://github.com/vortx-ai/vortx
 repo_name: vortx-ai/vortx
-edit_uri: edit/main/docs/
 
 theme:
   name: material
-  custom_dir: docs/overrides
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   features:
+    - navigation.instant
+    - navigation.tracking
     - navigation.tabs
     - navigation.sections
+    - navigation.expand
     - navigation.top
     - search.suggest
     - search.highlight
     - content.tabs.link
-    - content.code.annotation
     - content.code.copy
-  language: en
-  palette:
-    - scheme: default
-      toggle:
-        icon: material/toggle-switch-off-outline
-        name: Switch to dark mode
-      primary: indigo
-      accent: purple
-    - scheme: slate
-      toggle:
-        icon: material/toggle-switch
-        name: Switch to light mode
-      primary: indigo
-      accent: lime
-  font:
-    text: Roboto
-    code: Roboto Mono
-  favicon: assets/favicon.png
-  logo: assets/logo.png
+  icon:
+    repo: fontawesome/brands/github
 
 plugins:
   - search
@@ -42,42 +41,100 @@ plugins:
       default_handler: python
       handlers:
         python:
-          setup_commands:
-            - import sys
-            - sys.path.append(".")
-          selection:
-            members: true
           rendering:
             show_source: true
-            show_if_no_docstring: true
-  - git-revision-date
-  - mkdocs-jupyter:
-      include_source: true
-      execute: false
+  - mkdocs-jupyter
 
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - toc:
+      permalink: true
   - pymdownx.arithmatex:
       generic: true
-  - footnotes
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
   - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.mark
-  - attr_list
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+    - Configuration: configuration.md
+    - Examples: examples/index.md
+  - Core Concepts:
+    - Overview: core-concepts/overview.md
+    - AGI Memory System:
+      - Architecture: technical/agi-memory-inference.md
+      - Memory Types: core-concepts/memory-types.md
+      - Memory Formation: core-concepts/memory-formation.md
+      - Memory Retrieval: core-concepts/memory-retrieval.md
+    - Inference System:
+      - Overview: core-concepts/inference-overview.md
+      - Visualization: technical/inference-visualization.md
+      - Performance: technical/memory-performance.md
+    - Privacy & Security:
+      - Overview: security/overview.md
+      - Data Privacy: security/data-privacy.md
+      - Access Control: security/access-control.md
+  - API Reference:
+    - REST API: api/rest.md
+    - Python API: api/python.md
+    - CLI: api/cli.md
+  - Advanced Topics:
+    - Distributed Computing: advanced/distributed.md
+    - GPU Acceleration: advanced/gpu.md
+    - Custom Models: advanced/custom-models.md
+    - Performance Tuning: advanced/performance.md
+  - Development:
+    - Contributing: contributing.md
+    - Development Setup: development/setup.md
+    - Testing: development/testing.md
+    - Documentation: development/documentation.md
+  - Tutorials:
+    - Basic Usage: tutorials/basic.md
+    - Advanced Features: tutorials/advanced.md
+    - Integration Guide: tutorials/integration.md
+  - Reference:
+    - Configuration Options: reference/configuration.md
+    - Environment Variables: reference/environment.md
+    - Error Codes: reference/errors.md
+  - Support:
+    - FAQ: support/faq.md
+    - Troubleshooting: support/troubleshooting.md
+    - Community: support/community.md
+  - About:
+    - Release Notes: about/changelog.md
+    - Roadmap: about/roadmap.md
+    - License: about/license.md
 
 extra:
-  analytics:
-    provider: google
-    property: !ENV GOOGLE_ANALYTICS_KEY
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/vortx-ai/vortx
@@ -86,50 +143,10 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/vortxai
 
-nav:
-  - Home: index.md
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quickstart.md
-    - Basic Concepts: getting-started/concepts.md
-    - Configuration: getting-started/configuration.md
-  - User Guide:
-    - Overview: user-guide/overview.md
-    - Data Sources: user-guide/data-sources.md
-    - Processing Pipelines: user-guide/pipelines.md
-    - ML Models: user-guide/ml-models.md
-    - Privacy Features: user-guide/privacy.md
-    - Performance Tuning: user-guide/performance.md
-  - Research Algorithms:
-    - Overview: research/overview.md
-    - Atmospheric Correction: research/atmospheric-correction.md
-    - Super-Resolution: research/super-resolution.md
-    - Cloud Detection: research/cloud-detection.md
-    - Change Detection: research/change-detection.md
-    - Synthetic Data: research/synthetic-data.md
-  - API Reference:
-    - Core API: api/core.md
-    - ML Models: api/models.md
-    - Data Sources: api/data-sources.md
-    - Processing: api/processing.md
-    - Privacy: api/privacy.md
-    - Utilities: api/utils.md
-  - Examples:
-    - Basic Usage: examples/basic.md
-    - ML Processing: examples/ml-processing.md
-    - Research Applications: examples/research.md
-    - Advanced Features: examples/advanced.md
-  - Deployment:
-    - Overview: deployment/overview.md
-    - Docker: deployment/docker.md
-    - Cloud: deployment/cloud.md
-    - Monitoring: deployment/monitoring.md
-  - Contributing:
-    - Guidelines: contributing/guidelines.md
-    - Development: contributing/development.md
-    - Documentation: contributing/documentation.md
-    - Testing: contributing/testing.md
-  - About:
-    - Release Notes: about/changelog.md
-    - License: about/license.md
-    - Team: about/team.md 
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js 

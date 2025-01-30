@@ -1,0 +1,17 @@
+# Documentation dependencies
+mkdocs>=1.5.3
+mkdocs-material>=9.4.7
+mkdocstrings>=0.23.0
+mkdocs-jupyter>=0.24.2
+mkdocs-git-revision-date-plugin>=0.3.2
+mkdocs-minify-plugin>=0.7.1
+mkdocs-redirects>=1.2.1
+mkdocs-awesome-pages-plugin>=2.9.2
+mkdocs-macros-plugin>=1.0.4
+mkdocs-pdf-export-plugin>=0.5.10
+mkdocs-mermaid2-plugin>=1.1.1
+mkdocs-swagger-ui-tag>=0.6.7
+pymdown-extensions>=10.4
+pygments>=2.17.2
+jinja2>=3.1.2
+markdown>=3.5.1 
