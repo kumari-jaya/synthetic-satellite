@@ -205,8 +205,8 @@ Comprehensive documentation is available in the docs directory:
 ### Model Performance
 | Model        | Accuracy | Inference Time | Memory |
 |--------------|----------|----------------|---------|
-| DeepSeek-R1  | 94.5%    | 50ms          | 4GB    |
-| DeepSeek-V3  | 96.2%    | 75ms          | 6GB    |
+| DeepSeek-R1  | Testing   | Testing          | Testing    |
+| DeepSeek-V3  | Testing    | Testing         | Testing    |
 
 ## Use Cases
 
