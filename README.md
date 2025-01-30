@@ -8,8 +8,6 @@ Advanced Earth Memory System for AGI and Geospatial Intelligence
 [![Documentation](https://img.shields.io/badge/docs-vortx.ai-green.svg)](https://github.com/Vortx-AI/synthetic-satellite/blob/main/README.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://github.com/vortx-ai/vortx/workflows/Tests/badge.svg)](https://github.com/vortx-ai/vortx/actions)
-[![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=Discord&logo=discord&logoColor=ffffff)](https://discord.gg/vortx)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Coverage Status](https://coveralls.io/repos/github/vortx-ai/vortx/badge.svg?branch=main)](https://coveralls.io/github/vortx-ai/vortx?branch=main)
 
