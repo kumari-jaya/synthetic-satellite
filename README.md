@@ -5,7 +5,7 @@ Advanced Earth Memory System for AGI and Geospatial Intelligence
 <img src="vortxgola.jpg" alt="Vortx Logo" width="200"/>
 
 [![PyPI version](https://badge.fury.io/py/vortx.svg)](https://badge.fury.io/py/vortx)
-[![Documentation](https://img.shields.io/badge/docs-vortx.ai-green.svg)](https://vortx.ai/docs)
+[![Documentation](https://img.shields.io/badge/docs-vortx.ai-green.svg)](https://github.com/Vortx-AI/synthetic-satellite/blob/main/README.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://github.com/vortx-ai/vortx/workflows/Tests/badge.svg)](https://github.com/vortx-ai/vortx/actions)
@@ -237,10 +237,10 @@ Join our growing community:
 - 📧 [Email Newsletter](https://vortx.ai/newsletter)
 
 ### Support Channels
-- 📚 [Documentation](https://vortx.ai/docs)
-- 🤝 [Stack Overflow](https://stackoverflow.com/questions/tagged/vortx)
-- 🐛 [Issue Tracker](https://github.com/vortx-ai/vortx/issues)
-- 📧 [Email Support](mailto:support@vortx.ai)
+- 📚 [Documentation](https://github.com/Vortx-AI/synthetic-satellite/blob/main/README.md)
+- 🤝 [Stack Overflow - Coming Soon](https://stackoverflow.com/questions/tagged/vortx)
+- 🐛 [Issue Tracker](https://github.com/vortx-AI/synthetic-satellite/issues)
+- 📧 [Email Support](mailto:avijeet@vortx.ai)
 
 ## Contributing
 
@@ -298,10 +298,10 @@ If you use Vortx in your research, please cite:
 ## Links
 
 - 🌐 **Website**: [https://vortx.ai](https://vortx.ai)
-- 📚 **Documentation**: [https://vortx.ai/docs](https://vortx.ai/docs)
-- 💻 **Source Code**: [https://github.com/vortx-ai/vortx](https://github.com/vortx-ai/vortx)
-- 📊 **Project Board**: [GitHub Projects](https://github.com/vortx-ai/vortx/projects)
-- 📝 **Blog**: [https://vortx.ai/blog](https://vortx.ai/blog)
+- 📚 **Documentation**: [https://vortx.ai/docs](https://github.com/Vortx-AI/synthetic-satellite/blob/main/README.md)
+- 💻 **Source Code**: [https://github.com/vortx-ai/vortx](https://github.com/vortx-ai/synthetic-satellite)
+- 📊 **Project Board**: [GitHub Projects](https://github.com/vortx-ai/synthetic-satellite/projects)
+- 📝 **Blog - COming Soon**: [https://vortx.ai/blog](https://vortx.ai/blog)
 
 ## Acknowledgments
 
