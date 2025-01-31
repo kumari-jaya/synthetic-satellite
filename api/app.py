@@ -40,9 +40,9 @@ from geo.helper import generate_tile, tile_coords_to_bbox  # Ensure correct path
 
 # Additional Imports for New Endpoints
 from vortx.core.memory import EarthMemoryStore
-from vortx.core.synthesis import SynthesisPipeline
+from vortx.core.synthesis import (SynthesisPipeline,SatelliteDataSource)
 from vortx.core.data_sources import (
-    SatelliteDataSource,
+    
     WeatherDataSource,
     ElevationDataSource,
     LandUseDataSource,
