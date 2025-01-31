@@ -7,12 +7,12 @@ TileFormer provides a powerful REST API for advanced geospatial data processing 
 ## Base URL
 
 ```
-https://api.tileformer.io/v2
+https://api.vortx.ai/v2
 ```
 
 ## Authentication
 
-TileFormer uses API keys for authentication. Include your API key in the request header:
+Synthetic-Satellites uses API keys for authentication. Include your API key in the request header:
 
 ```bash
 Authorization: Bearer your_api_key
@@ -55,19 +55,19 @@ Serves vector and raster tiles with real-time processing and ML capabilities.
 
 1. Basic Vector Tile
 ```bash
-curl "https://api.tileformer.io/v2/tiles/12/2048/1024.mvt" \
+curl "https://api.vortx.ai/v2/tiles/12/2048/1024.mvt" \
   -H "Authorization: Bearer your_api_key"
 ```
 
 2. Raster Tile with ML
 ```bash
-curl "https://api.tileformer.io/v2/tiles/15/16384/8192.png?ml_model=sam-vit-huge&ml_task=segmentation" \
+curl "https://api.vortx.ai/v2/tiles/15/16384/8192.png?ml_model=sam-vit-huge&ml_task=segmentation" \
   -H "Authorization: Bearer your_api_key"
 ```
 
 3. Advanced Processing
 ```bash
-curl "https://api.tileformer.io/v2/tiles/14/4096/4096.webp?style=custom&transform=normalize,sharpen&ml_model=sdxl&prompt=enhance satellite imagery" \
+curl "https://api.vortx.ai/v2/tiles/14/4096/4096.webp?style=custom&transform=normalize,sharpen&ml_model=sdxl&prompt=enhance satellite imagery" \
   -H "Authorization: Bearer your_api_key"
 ```
 
@@ -130,7 +130,7 @@ Direct ML inference on images.
 #### Example Request
 
 ```bash
-curl -X POST "https://api.tileformer.io/v2/ml/infer" \
+curl -X POST "https://api.vortx.ai/v2/ml/infer" \
   -H "Authorization: Bearer your_api_key" \
   -F "image=@input.png" \
   -F "model=sam-vit-huge" \
@@ -239,4 +239,4 @@ TileFormer provides official SDKs for:
 
 ## Examples
 
-Visit our [GitHub repository](https://github.com/tileformer/examples) for complete examples and tutorials. 
+Visit our [GitHub repository](https://github.com/vortx-AI/synthetic-satellite) for complete examples and tutorials. 
