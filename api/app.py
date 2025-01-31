@@ -16,7 +16,7 @@ from io import BytesIO
 # Import model load functions
 
 # Add this import for type annotations
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 # Add the project root to Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -40,13 +40,18 @@ from geo.helper import generate_tile, tile_coords_to_bbox  # Ensure correct path
 
 # Additional Imports for New Endpoints
 from vortx.core.memory import EarthMemoryStore
-from vortx.core.synthesis import (SynthesisPipeline,SatelliteDataSource)
+from vortx.core.synthesis import (SynthesisPipeline, SatelliteDataSource)
 from vortx.core.data_sources import (
-    
     WeatherDataSource,
     ElevationDataSource,
     LandUseDataSource,
-    ClimateDataSource
+    ClimateDataSource,
+    DataCenterDataSource,
+    PowerInfrastructureDataSource,
+    SatelliteTrafficDataSource,
+    NightLightDataSource,
+    SolarRadiationDataSource,
+    AirQualityDataSource
 )
 
 # Load environment variables
@@ -70,10 +75,7 @@ from shapely.geometry import shape, mapping
 from functools import wraps
 from werkzeug.utils import secure_filename
 from google.cloud import storage
-import torch
 import base64
-
-
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -555,6 +557,49 @@ def download_result(filename):
 def locen():
     """
     Handle Generation of Synthetic Images with Geo-Privacy Protection
+    ---
+    responses:
+      200:
+        description: Successfully processed location
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            message:
+              type: string
+            description:
+              type: string
+            text1:
+              type: string
+            scene:
+              type: string
+            image:
+              type: string
+            uploaded_image_url:
+              type: string
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     try:
         data = request.get_json()
@@ -691,7 +736,6 @@ def locen():
     except Exception as e:
         logger.error(f"Error in locen: {str(e)}")
         return jsonify({"error": str(e)}), 500  
- 
 
 @app.route("/tileformer", methods=['POST'])
 @limiter.limit("10 per minute")
@@ -827,31 +871,1330 @@ def tileformer():
         return jsonify({"error": str(e)}), 500
 
 # ====================
-# + New Memory Analysis Endpoints
+# + New Advanced Analysis Endpoints
 # ====================
 
-# Initialize services for memory APIs
-memory_store = EarthMemoryStore(Path("/app/data/memories"))
-
-data_sources_memory = [
-    SatelliteDataSource(
-        name="sentinel2",
-        resolution=10.0,
-        bands=["B02", "B03", "B04", "B08"],  # RGB + NIR
-        data_path=Path("/app/data/satellite")
-    )
-    # Add other data sources if needed
-]
+# Initialize services for advanced APIs
+data_sources_memory = {
+    "datacenter": DataCenterDataSource(),
+    "power": PowerInfrastructureDataSource(),
+    "satellite": SatelliteTrafficDataSource(),
+    "nightlight": NightLightDataSource(),
+    "solar": SolarRadiationDataSource(),
+    "air": AirQualityDataSource()
+}
 
 pipeline_memory = SynthesisPipeline(
-    data_sources=data_sources_memory,
-    memory_store=memory_store
+    data_sources=list(data_sources_memory.values()),
+    memory_store=EarthMemoryStore(Path("/app/data/memories"))
 )
+
+@app.route('/api/v1/advanced/analyze_datacenters', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def analyze_datacenters():
+    """
+    Analyze data centers and their infrastructure.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            radius_km:
+              type: number
+              example: 50.0
+            include_power:
+              type: boolean
+              example: true
+            include_climate:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: Successfully analyzed data centers
+        schema:
+          type: object
+          properties:
+            data_centers:
+              type: object
+              properties:
+                count:
+                  type: integer
+                total_area_km2:
+                  type: number
+                average_distance_km:
+                  type: number
+            power_infrastructure:
+              type: object
+              properties:
+                transmission_lines:
+                  type: integer
+                power_stations:
+                  type: integer
+                substations:
+                  type: integer
+                power_plants:
+                  type: integer
+                towers:
+                  type: integer
+            environmental_impact:
+              type: object
+              properties:
+                air_quality:
+                  type: object
+                  properties:
+                    pm25:
+                      type: number
+                    pm10:
+                      type: number
+                    no2:
+                      type: number
+                    o3:
+                      type: number
+                    so2:
+                      type: number
+                    co:
+                      type: number
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        radius_km = data.get('radius_km', 50.0)
+        include_power = data.get('include_power', True)
+        include_climate = data.get('include_climate', True)
+
+        results = {}
+
+        # Analyze Data Centers
+        dc_data = data_sources_memory['datacenter'].load_data(
+            coordinates=(latitude, longitude),
+            timestamp=datetime.now()
+        )
+        results["data_centers"] = {
+            "count": int(dc_data[0, 0, 0]),
+            "total_area_km2": float(dc_data[1, 0, 0]),
+            "average_distance_km": float(dc_data[2, 0, 0])
+        }
+
+        if include_power:
+            # Analyze Power Infrastructure
+            power_data = data_sources_memory['power'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            results["power_infrastructure"] = {
+                "transmission_lines": int(power_data[0, 0, 0]),
+                "power_stations": int(power_data[1, 0, 0]),
+                "substations": int(power_data[2, 0, 0]),
+                "power_plants": int(power_data[3, 0, 0]),
+                "towers": int(power_data[4, 0, 0])
+            }
+
+        if include_climate:
+            # Analyze Environmental Impact
+            air_data = data_sources_memory['air'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            results["environmental_impact"] = {
+                "air_quality": {
+                    "pm25": float(air_data[0, 0, 0]),
+                    "pm10": float(air_data[1, 0, 0]),
+                    "no2": float(air_data[2, 0, 0]),
+                    "o3": float(air_data[3, 0, 0]),
+                    "so2": float(air_data[4, 0, 0]),
+                    "co": float(air_data[5, 0, 0])
+                }
+            }
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        logger.error(f"Error in analyze_datacenters: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/advanced/analyze_energy', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def analyze_energy():
+    """
+    Analyze energy infrastructure and potential.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            radius_km:
+              type: number
+              example: 50.0
+            analyze_solar_potential:
+              type: boolean
+              example: true
+            include_consumption:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: Successfully analyzed energy infrastructure
+        schema:
+          type: object
+          properties:
+            infrastructure:
+              type: object
+              properties:
+                transmission_lines:
+                  type: integer
+                power_stations:
+                  type: integer
+                substations:
+                  type: integer
+                power_plants:
+                  type: integer
+                towers:
+                  type: integer
+            estimated_consumption:
+              type: object
+              properties:
+                night_light_intensity:
+                  type: number
+            solar_potential:
+              type: object
+              properties:
+                global_horizontal_irradiance:
+                  type: number
+                direct_normal_irradiance:
+                  type: number
+                diffuse_horizontal_irradiance:
+                  type: number
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        radius_km = data.get('radius_km', 50.0)
+        analyze_solar_potential = data.get('analyze_solar_potential', True)
+        include_consumption = data.get('include_consumption', True)
+
+        results = {}
+
+        # Analyze Power Infrastructure
+        power_data = data_sources_memory['power'].load_data(
+            coordinates=(latitude, longitude),
+            timestamp=datetime.now()
+        )
+        results["infrastructure"] = {
+            "transmission_lines": int(power_data[0, 0, 0]),
+            "power_stations": int(power_data[1, 0, 0]),
+            "substations": int(power_data[2, 0, 0]),
+            "power_plants": int(power_data[3, 0, 0]),
+            "towers": int(power_data[4, 0, 0])
+        }
+
+        if include_consumption:
+            # Analyze Estimated Consumption
+            night_data = data_sources_memory['nightlight'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            results["estimated_consumption"] = {
+                "night_light_intensity": float(night_data[0, 0, 0])
+            }
+
+        if analyze_solar_potential:
+            # Analyze Solar Potential
+            solar_data = data_sources_memory['solar'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            results["solar_potential"] = {
+                "global_horizontal_irradiance": float(solar_data[0, 0, 0]),
+                "direct_normal_irradiance": float(solar_data[1, 0, 0]),
+                "diffuse_horizontal_irradiance": float(solar_data[2, 0, 0])
+            }
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        logger.error(f"Error in analyze_energy: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/advanced/analyze_spacetech', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def analyze_spacetech():
+    """
+    Analyze satellite coverage and space infrastructure.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            time_window_hours:
+              type: integer
+              example: 24
+            include_coverage:
+              type: boolean
+              example: true
+            include_interference:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: Successfully analyzed space technology
+        schema:
+          type: object
+          properties:
+            satellite_traffic:
+              type: object
+              properties:
+                total_satellites:
+                  type: integer
+                starlink_satellites:
+                  type: integer
+                onewweb_satellites:
+                  type: integer
+                other_satellites:
+                  type: integer
+            coverage_analysis:
+              type: object
+              properties:
+                estimated_coverage_hours:
+                  type: number
+                coverage_percentage:
+                  type: number
+            interference_analysis:
+              type: object
+              properties:
+                satellite_density:
+                  type: number
+                potential_interference_level:
+                  type: string
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        time_window_hours = data.get('time_window_hours', 24)
+        include_coverage = data.get('include_coverage', True)
+        include_interference = data.get('include_interference', True)
+
+        results = {}
+
+        # Analyze Satellite Traffic
+        sat_data = data_sources_memory['satellite'].load_data(
+            coordinates=(latitude, longitude),
+            timestamp=datetime.now()
+        )
+        results["satellite_traffic"] = {
+            "total_satellites": int(sat_data[0, 0, 0]),
+            "starlink_satellites": int(sat_data[1, 0, 0]),
+            "oneweb_satellites": int(sat_data[2, 0, 0]),
+            "other_satellites": int(sat_data[3, 0, 0])
+        }
+
+        if include_coverage:
+            # Calculate Coverage Analysis
+            coverage_hours = min(sat_data[1, 0, 0] + sat_data[2, 0, 0], 24) * 0.8
+            results["coverage_analysis"] = {
+                "estimated_coverage_hours": float(coverage_hours),
+                "coverage_percentage": float(coverage_hours / 24 * 100)
+            }
+
+        if include_interference:
+            # Analyze Potential Interference
+            satellite_density = float(sat_data[0, 0, 0] / 100)  # per 100 km²
+            if sat_data[0, 0, 0] > 100:
+                interference_level = "high"
+            elif sat_data[0, 0, 0] > 50:
+                interference_level = "medium"
+            else:
+                interference_level = "low"
+            results["interference_analysis"] = {
+                "satellite_density": satellite_density,
+                "potential_interference_level": interference_level
+            }
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        logger.error(f"Error in analyze_spacetech: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/advanced/analyze_agi_infrastructure', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def analyze_agi_infrastructure():
+    """
+    Analyze infrastructure relevant for AGI deployment.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            radius_km:
+              type: number
+              example: 50.0
+            include_compute:
+              type: boolean
+              example: true
+            include_network:
+              type: boolean
+              example: true
+            include_power:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: Successfully analyzed AGI infrastructure
+        schema:
+          type: object
+          properties:
+            location:
+              type: object
+              properties:
+                coordinates:
+                  type: array
+                  items:
+                    type: number
+                radius_km:
+                  type: number
+            compute_infrastructure:
+              type: object
+              properties:
+                data_centers:
+                  type: object
+                  properties:
+                    count:
+                      type: integer
+                    total_area_km2:
+                      type: number
+                    average_distance_km:
+                      type: number
+            network_infrastructure:
+              type: object
+              properties:
+                development_level:
+                  type: string
+                night_light_intensity:
+                  type: number
+            power_infrastructure:
+              type: object
+              properties:
+                transmission_lines:
+                  type: integer
+                power_stations:
+                  type: integer
+                substations:
+                  type: integer
+                power_plants:
+                  type: integer
+                estimated_capacity_mw:
+                  type: number
+            agi_suitability:
+              type: object
+              properties:
+                score:
+                  type: number
+                level:
+                  type: string
+                limiting_factors:
+                  type: array
+                  items:
+                    type: string
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        radius_km = data.get('radius_km', 50.0)
+        include_compute = data.get('include_compute', True)
+        include_network = data.get('include_network', True)
+        include_power = data.get('include_power', True)
+
+        results = {
+            "location": {
+                "coordinates": [latitude, longitude],
+                "radius_km": radius_km
+            }
+        }
+
+        # Analyze Compute Infrastructure
+        if include_compute:
+            dc_data = data_sources_memory['datacenter'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            results["compute_infrastructure"] = {
+                "data_centers": {
+                    "count": int(dc_data[0, 0, 0]),
+                    "total_area_km2": float(dc_data[1, 0, 0]),
+                    "average_distance_km": float(dc_data[2, 0, 0])
+                }
+            }
+
+        # Analyze Network Infrastructure
+        if include_network:
+            night_data = data_sources_memory['nightlight'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            development_level = "high" if night_data[0, 0, 0] > 50 else "medium" if night_data[0, 0, 0] > 20 else "low"
+            results["network_infrastructure"] = {
+                "development_level": development_level,
+                "night_light_intensity": float(night_data[0, 0, 0])
+            }
+
+        # Analyze Power Infrastructure
+        if include_power:
+            power_data = data_sources_memory['power'].load_data(
+                coordinates=(latitude, longitude),
+                timestamp=datetime.now()
+            )
+            results["power_infrastructure"] = {
+                "transmission_lines": int(power_data[0, 0, 0]),
+                "power_stations": int(power_data[1, 0, 0]),
+                "substations": int(power_data[2, 0, 0]),
+                "power_plants": int(power_data[3, 0, 0]),
+                "estimated_capacity_mw": float(power_data[3, 0, 0] * 100)  # Rough estimate
+            }
+
+        # Calculate Overall AGI Suitability Score
+        if include_compute and include_network and include_power:
+            compute_score = min(dc_data[0, 0, 0] / 10, 1.0)  # Normalize by 10 data centers
+            network_score = night_data[0, 0, 0] / 100  # Normalize by 100 intensity
+            power_score = min(power_data[3, 0, 0] / 5, 1.0)  # Normalize by 5 power plants
+
+            overall_score = (compute_score + network_score + power_score) / 3
+            level = "high" if overall_score > 0.7 else "medium" if overall_score > 0.4 else "low"
+
+            limiting_factors = []
+            if compute_score < 0.3:
+                limiting_factors.append("compute_infrastructure")
+            if network_score < 0.3:
+                limiting_factors.append("network_infrastructure")
+            if power_score < 0.3:
+                limiting_factors.append("power_infrastructure")
+
+            results["agi_suitability"] = {
+                "score": float(overall_score),
+                "level": level,
+                "limiting_factors": limiting_factors
+            }
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        logger.error(f"Error in analyze_agi_infrastructure: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# ====================
+# + New Analysis Endpoints
+# ====================
+
+@app.route('/api/v1/analysis/detect_changes', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def detect_environmental_changes():
+    """
+    Detect and analyze environmental changes over time.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+            - start_time
+            - end_time
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            start_time:
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
+            end_time:
+              type: string
+              format: date-time
+              example: "2023-12-31T23:59:59Z"
+            interval_days:
+              type: integer
+              example: 30
+            change_threshold:
+              type: number
+              example: 0.1
+    responses:
+      200:
+        description: Successfully detected environmental changes
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            total_intervals:
+              type: integer
+              example: 12
+            significant_changes:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  change_magnitude:
+                    type: number
+                  previous_state:
+                    type: object
+                  current_state:
+                    type: object
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude', 'start_time', 'end_time']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        start_time_str = data['start_time']
+        end_time_str = data['end_time']
+        interval_days = data.get('interval_days', 30)
+        change_threshold = data.get('change_threshold', 0.1)
+
+        # Parse datetime strings
+        try:
+            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({"error": "Invalid datetime format"}), 400
+
+        # Process time series data
+        results = pipeline_memory.process_time_series(
+            coordinates=(latitude, longitude),
+            time_range=(start_time, end_time),
+            interval_days=interval_days
+        )
+
+        # Analyze changes
+        changes = []
+        for i in range(1, len(results)):
+            prev_data = results[i-1]["data"]
+            curr_data = results[i]["data"]
+
+            # Calculate change metrics
+            diff = np.mean(np.abs(curr_data - prev_data))
+            if diff > change_threshold:
+                changes.append({
+                    "timestamp": results[i]["metadata"]["timestamp"].isoformat(),
+                    "change_magnitude": float(diff),
+                    "previous_state": results[i-1]["metadata"],
+                    "current_state": results[i]["metadata"]
+                })
+
+        return jsonify({
+            "status": "success",
+            "total_intervals": len(results),
+            "significant_changes": changes
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in detect_environmental_changes: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/analysis/find_similar', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def find_similar_locations():
+    """
+    Find locations with similar environmental characteristics.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+            - timestamp
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            timestamp:
+              type: string
+              format: date-time
+              example: "2023-06-15T12:00:00Z"
+            radius_km:
+              type: number
+              example: 100.0
+            limit:
+              type: integer
+              example: 5
+    responses:
+      200:
+        description: Successfully found similar locations
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            reference_location:
+              type: object
+              properties:
+                coordinates:
+                  type: array
+                  items:
+                    type: number
+                metadata:
+                  type: object
+            similar_locations:
+              type: array
+              items:
+                type: object
+                properties:
+                  coordinates:
+                    type: array
+                    items:
+                      type: number
+                  distance_km:
+                    type: number
+                  similarity_score:
+                    type: number
+                  metadata:
+                    type: object
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude', 'timestamp']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        timestamp_str = data['timestamp']
+        radius_km = data.get('radius_km', 100.0)
+        limit = data.get('limit', 5)
+
+        # Parse datetime string
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({"error": "Invalid datetime format"}), 400
+
+        # Process reference location
+        reference = pipeline_memory.process_location(
+            coordinates=(latitude, longitude),
+            timestamp=timestamp
+        )
+
+        # Query similar locations from memory store
+        similar = pipeline_memory.memory_store.query_memories(
+            coordinates=(latitude, longitude),
+            k=limit
+        )
+
+        # Calculate similarity scores
+        results = []
+        for mem in similar:
+            # Calculate distance
+            dist_km = np.sqrt(
+                (mem["coordinates"][0] - latitude)**2 +
+                (mem["coordinates"][1] - longitude)**2
+            ) * 111  # Rough km conversion
+
+            if dist_km <= radius_km:
+                # Calculate feature similarity
+                similarity = np.dot(
+                    reference["embedding"].flatten(),
+                    mem["embedding"].flatten()
+                )
+
+                results.append({
+                    "coordinates": mem["coordinates"],
+                    "distance_km": float(dist_km),
+                    "similarity_score": float(similarity),
+                    "metadata": mem["metadata"]
+                })
+
+        # Sort by similarity score descending
+        sorted_results = sorted(
+            results,
+            key=lambda x: x["similarity_score"],
+            reverse=True
+        )
+
+        return jsonify({
+            "status": "success",
+            "reference_location": {
+                "coordinates": (latitude, longitude),
+                "metadata": reference["metadata"]
+            },
+            "similar_locations": sorted_results
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in find_similar_locations: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/analysis/get_context', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def get_location_context():
+    """
+    Get comprehensive context for a location.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+            - timestamp
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            timestamp:
+              type: string
+              format: date-time
+              example: "2023-06-15T12:00:00Z"
+            context_window_days:
+              type: integer
+              example: 365
+    responses:
+      200:
+        description: Successfully retrieved location context
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            current_state:
+              type: object
+              properties:
+                timestamp:
+                  type: string
+                  format: date-time
+                metadata:
+                  type: object
+            historical_trends:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  mean:
+                    type: number
+                  std:
+                    type: number
+                  min:
+                    type: number
+                  max:
+                    type: number
+            temporal_context:
+              type: object
+              properties:
+                window_days:
+                  type: integer
+                data_points:
+                  type: integer
+                first_observation:
+                  type: string
+                  format: date-time
+                last_observation:
+                  type: string
+                  format: date-time
+      400:
+        description: Invalid input parameters
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude', 'timestamp']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        timestamp_str = data['timestamp']
+        context_window_days = data.get('context_window_days', 365)
+
+        # Parse datetime string
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({"error": "Invalid datetime format"}), 400
+
+        # Get current state
+        current = pipeline_memory.process_location(
+            coordinates=(latitude, longitude),
+            timestamp=timestamp
+        )
+
+        # Get historical context
+        start_time = timestamp - timedelta(days=context_window_days)
+        historical = pipeline_memory.process_time_series(
+            coordinates=(latitude, longitude),
+            time_range=(start_time, timestamp),
+            interval_days=30
+        )
+
+        # Analyze trends
+        trends = {}
+        for source in data_sources_memory.values():
+            source_name = source.name  # Assuming each data source has a 'name' attribute
+            source_data = [
+                result["metadata"].get(f"{source_name}_resolution")
+                for result in historical
+                if f"{source_name}_resolution" in result["metadata"]
+            ]
+            if source_data:
+                trends[source_name] = {
+                    "mean": float(np.mean(source_data)),
+                    "std": float(np.std(source_data)),
+                    "min": float(np.min(source_data)),
+                    "max": float(np.max(source_data))
+                }
+
+        # Prepare temporal context
+        temporal_context = {
+            "window_days": context_window_days,
+            "data_points": len(historical),
+            "first_observation": historical[0]["metadata"]["timestamp"].isoformat() if historical else None,
+            "last_observation": historical[-1]["metadata"]["timestamp"].isoformat() if historical else None
+        }
+
+        return jsonify({
+            "status": "success",
+            "current_state": {
+                "timestamp": current["metadata"]["timestamp"],
+                "metadata": current["metadata"]
+            },
+            "historical_trends": trends,
+            "temporal_context": temporal_context
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in get_location_context: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/v1/analysis/decision_support', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_api_key('generate')
+def decision_support():
+    """
+    Get decision support analysis for a location.
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - latitude
+            - longitude
+            - analysis_type
+          properties:
+            latitude:
+              type: number
+              example: 34.05
+            longitude:
+              type: number
+              example: -118.25
+            analysis_type:
+              type: string
+              description: "Type of analysis to perform"
+              example: "land_use_change"
+            parameters:
+              type: object
+              additionalProperties:
+                type: any
+    responses:
+      200:
+        description: Successfully performed decision support analysis
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            analysis_results:
+              type: object
+      400:
+        description: Invalid input parameters or unsupported analysis type
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      401:
+        description: Unauthorized - Invalid or missing API key
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Internal Server Error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    try:
+        data = request.get_json()
+        required_fields = ['latitude', 'longitude', 'analysis_type']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+
+        latitude = data['latitude']
+        longitude = data['longitude']
+        analysis_type = data['analysis_type']
+        parameters = data.get('parameters', {})
+
+        # Prepare a mock request object or extract additional parameters as needed
+        request_payload = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        if analysis_type == "land_use_change":
+            # Analyze land use changes and their implications
+            return analyze_land_use_impact(data)
+        elif analysis_type == "climate_risk":
+            # Assess climate-related risks
+            return analyze_climate_risk(data)
+        elif analysis_type == "environmental_impact":
+            # Evaluate environmental impact
+            return analyze_environmental_impact(data)
+        else:
+            return jsonify({
+                "error": f"Unsupported analysis type: {analysis_type}"
+            }), 400
+
+    except Exception as e:
+        logger.error(f"Error in decision_support: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+def analyze_land_use_impact(data: Dict[str, Any]):
+    """Analyze land use changes and their implications."""
+    try:
+        # Implement the specific logic for land use impact analysis
+        # Placeholder implementation
+        results = {
+            "land_use_changes": [
+                {"type": "deforestation", "magnitude": 0.2, "implications": "loss of biodiversity"},
+                {"type": "urbanization", "magnitude": 0.3, "implications": "increased pollution"}
+            ],
+            "overall_impact": "significant"
+        }
+        return jsonify({
+            "status": "success",
+            "analysis_results": results
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in analyze_land_use_impact: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+def analyze_climate_risk(data: Dict[str, Any]):
+    """Assess climate-related risks for a location."""
+    try:
+        # Implement the specific logic for climate risk assessment
+        # Placeholder implementation
+        results = {
+            "risks": {
+                "flooding": {"probability": 0.3, "impact": "moderate"},
+                "drought": {"probability": 0.2, "impact": "low"},
+                "hurricane": {"probability": 0.1, "impact": "high"}
+            },
+            "overall_risk_level": "medium"
+        }
+        return jsonify({
+            "status": "success",
+            "analysis_results": results
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in analyze_climate_risk: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+def analyze_environmental_impact(data: Dict[str, Any]):
+    """Evaluate environmental impact of changes."""
+    try:
+        # Implement the specific logic for environmental impact evaluation
+        # Placeholder implementation
+        results = {
+            "impact_factors": {
+                "air_quality": {"pm25_increase": 5.0, "pm10_increase": 10.0},
+                "water_quality": {"contaminants": ["lead", "mercury"], "levels": [0.05, 0.02]},
+                "soil_quality": {"erosion_rate": 0.1}
+            },
+            "overall_impact": "high"
+        }
+        return jsonify({
+            "status": "success",
+            "analysis_results": results
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in analyze_environmental_impact: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# ====================
+# + New Memory Analysis Endpoints
+# ====================
 
 @app.route('/api/v1/memory/query', methods=['POST'])
 @limiter.limit("10 per minute")
 @require_api_key('generate')
-def query_memories():
+def query_memories_endpoint():
     """
     Query memories by location and time range.
     ---
@@ -953,7 +2296,7 @@ def query_memories():
                 return jsonify({"error": "Invalid datetime format"}), 400
 
         # Query memories
-        memories = memory_store.query_memories(
+        memories = pipeline_memory.memory_store.query_memories(
             coordinates=(latitude, longitude),
             time_range=time_range,
             k=limit
@@ -972,13 +2315,13 @@ def query_memories():
         return jsonify(response), 200
 
     except Exception as e:
-        logger.error(f"Error in query_memories: {str(e)}")
+        logger.error(f"Error in query_memories_endpoint: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/v1/memory/process', methods=['POST'])
 @limiter.limit("10 per minute")
 @require_api_key('generate')
-def process_location():
+def process_location_endpoint():
     """
     Process a new location and store it in memory.
     ---
@@ -1078,13 +2421,13 @@ def process_location():
         }), 200
 
     except Exception as e:
-        logger.error(f"Error in process_location: {str(e)}")
+        logger.error(f"Error in process_location_endpoint: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/v1/memory/process_time_series', methods=['POST'])
 @limiter.limit("10 per minute")
 @require_api_key('generate')
-def process_time_series():
+def process_time_series_endpoint():
     """
     Process a location across a time range.
     ---
@@ -1195,23 +2538,21 @@ def process_time_series():
             interval_days=interval_days
         )
 
-        # Prepare response
-        response_results = []
-        for result in results:
-            response_results.append({
-                "timestamp": result["metadata"]["timestamp"].isoformat(),
-                "embedding": result["embedding"].tolist(),
-                "metadata": result["metadata"]
-            })
-
         return jsonify({
             "status": "success",
             "count": len(results),
-            "results": response_results
+            "results": [
+                {
+                    "timestamp": result["metadata"]["timestamp"].isoformat(),
+                    "embedding": result["embedding"].tolist(),
+                    "metadata": result["metadata"]
+                }
+                for result in results
+            ]
         }), 200
 
     except Exception as e:
-        logger.error(f"Error in process_time_series: {str(e)}")
+        logger.error(f"Error in process_time_series_endpoint: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/v1/memory/health', methods=['GET'])
@@ -1244,7 +2585,7 @@ def memory_health_check():
     try:
         return jsonify({
             "status": "healthy",
-            "memory_count": len(memory_store.memory_index)
+            "memory_count": len(pipeline_memory.memory_store.memory_index)
         }), 200
     except Exception as e:
         logger.error(f"Error in memory_health_check: {str(e)}")
