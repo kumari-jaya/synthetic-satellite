@@ -38,6 +38,17 @@ from privacy.secure_encoding import SecureAPILayer  # Ensure this exists in src/
 from synthetic_data_generator import SyntheticConfig, SyntheticDataGenerator  # Ensure correct path
 from geo.helper import generate_tile, tile_coords_to_bbox  # Ensure correct path
 
+# Additional Imports for New Endpoints
+from vortx.core.memory import EarthMemoryStore
+from vortx.core.synthesis import SynthesisPipeline
+from vortx.core.data_sources import (
+    SatelliteDataSource,
+    WeatherDataSource,
+    ElevationDataSource,
+    LandUseDataSource,
+    ClimateDataSource
+)
+
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
@@ -62,16 +73,7 @@ from google.cloud import storage
 import torch
 import base64
 
-# Additional Imports for New Endpoints
-from core.memory import EarthMemoryStore
-from core.synthesis import SynthesisPipeline
-from core.data_sources import (
-    SatelliteDataSource,
-    WeatherDataSource,
-    ElevationDataSource,
-    LandUseDataSource,
-    ClimateDataSource
-)
+
 
 # Initialize Flask app
 app = Flask(__name__)
